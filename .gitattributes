@@ -1,0 +1,2 @@
+# Mantengo CRLF per i file di progetto Keil
+*.uvproj -lf

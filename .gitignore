@@ -1,0 +1,7 @@
+# Ignoro i file di configurazione del progetto Keil
+*.uvguix.*
+MDK-ARM/DebugConfig/
+
+# Ignoro la cartella di compilazione
+MDK-ARM/CANAnalyzerFW/
+*.lst
