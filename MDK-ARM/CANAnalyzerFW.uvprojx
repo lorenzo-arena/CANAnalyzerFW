@@ -134,11 +134,11 @@
             <RunIndependent>0</RunIndependent>
             <UpdateFlashBeforeDebugging>1</UpdateFlashBeforeDebugging>
             <Capability>1</Capability>
-            <DriverSelection>4107</DriverSelection>
+            <DriverSelection>4101</DriverSelection>
           </Flash1>
           <bUseTDR>1</bUseTDR>
           <Flash2>STLink\ST-LINKIII-KEIL_SWO.dll</Flash2>
-          <Flash3></Flash3>
+          <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F446xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Drivers/STM32F4xx_HAL_Driver/Inc;         ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;         ../Middlewares/Third_Party/FreeRTOS/Source/include;         ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;         ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;         ../Drivers/CMSIS/Device/ST/STM32F4xx/Include;         ../Drivers/CMSIS/Include;      ../Inc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -356,7 +356,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\\Inc</IncludePath>
+              <IncludePath>..\\Inc;..\Core\Inc</IncludePath>
             </VariousControls>
           </Aads>
           <LDads>
@@ -393,14 +393,54 @@
           <GroupName>Application/User</GroupName>
           <Files>
             <File>
+              <FileName>ble.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\ble.c</FilePath>
+            </File>
+            <File>
+              <FileName>debug.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\debug.c</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Src/main.c</FilePath>
             </File>
             <File>
+              <FileName>gpio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Src/gpio.c</FilePath>
+            </File>
+            <File>
+              <FileName>can.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Src/can.c</FilePath>
+            </File>
+            <File>
+              <FileName>crc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Src/crc.c</FilePath>
+            </File>
+            <File>
               <FileName>freertos.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Src/freertos.c</FilePath>
+            </File>
+            <File>
+              <FileName>i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Src/i2c.c</FilePath>
+            </File>
+            <File>
+              <FileName>spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Src/spi.c</FilePath>
+            </File>
+            <File>
+              <FileName>usart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Src/usart.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_it.c</FileName>
