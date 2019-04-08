@@ -15,6 +15,7 @@
 
 /* Private functions */
 void InitBLE(void);
+void MessageDispatcher(unsigned char *message);
 void SendCommandAndReceive(char * message);
 void SendToModule_NOIT(char * message, int maxTimeout);
 void ReceiveFromModule_NOIT(char * message, unsigned long maxLength, unsigned int maxTimout);
@@ -28,7 +29,7 @@ void ReceiveFromModule_NOIT(char * message, unsigned long maxLength, unsigned in
 void StartBLETask(void const * argument)
 {
 	const int maxLength = 100;
-	char reply[maxLength];
+	unsigned char reply[maxLength];
 
 	InitBLE();
 	
@@ -47,11 +48,13 @@ void StartBLETask(void const * argument)
 		}
 		
 		// Loggo la risposta ricevuta
-		if(strlen(reply) != 0)
+		if(strlen((char *)reply) != 0)
 		{
 			PrintDebugMessage("Received: ");
-			PrintLnDebugMessage(reply);
+			PrintLnDebugMessage((char *)reply);
 		}
+		
+		MessageDispatcher(reply);
   }
 }
 
@@ -73,6 +76,14 @@ void InitBLE(void)
 	osDelay(10);
 	SendCommandAndReceive("AT+RESET");
 	osDelay(10);
+}
+
+void MessageDispatcher(unsigned char *message)
+{
+	if(strcmp((char*)message,"testtest") == 0)
+	{
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	}
 }
 
 void SendCommandAndReceive(char * message)
