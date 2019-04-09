@@ -6,9 +6,10 @@
   */
 	
 #include "ble.h"
-#include "main.h"
+
 #include "cmsis_os.h"
 #include "usart.h"
+#include "crc.h"
 #include "debug.h"
 #include "string.h"
 #include "stdlib.h"
@@ -19,6 +20,7 @@ void MessageDispatcher(uint8_t *message, int length);
 void SendCommandAndReceive(char * message);
 void SendToModule_NOIT(char * message, int maxTimeout);
 void ReceiveFromModule_NOIT(char * message, unsigned long maxLength, unsigned int maxTimout);
+void ReceiveFromModule_IT(uint8_t *message, unsigned long maxLength);
 /*********************/
 
 /**
@@ -37,7 +39,7 @@ void StartBLETask(void const * argument)
 	for(;;)
 	{
 		// TODO : creare thread generico per la gestione dei messaggi
-		const int initLength = 10;
+		const int initLength = 12;
 		uint8_t initFrame[initLength];
 		
 		HAL_UART_Receive_IT(&huart1, initFrame, initLength);
@@ -48,28 +50,37 @@ void StartBLETask(void const * argument)
 		
 		// Loggo la risposta ricevuta
 		PrintDebugMessage("Init Frame: ");
-		PrintLnDebugMessage((char *)initFrame);
+		PrintLnDebugBuffer(initFrame, initLength);
 		
-		if(strncmp((char *)initFrame, "CA", 2) == 0)
+		if(strncmp((char *)initFrame, "DSCA", 4) == 0)
 		{
-			uint16_t crcInit = (initFrame[8] << 8) |
-								(initFrame[9]);
+			uint32_t crcInitCalc = 0;
+
+			uint32_t lengthDataNext = (initFrame[4] << 24) |
+						(initFrame[5] << 16) |
+						(initFrame[6] << 8)  |
+						(initFrame[7]);
 							
-			uint16_t crcNext = (initFrame[6] << 8) |
-								(initFrame[7]);
-								
-			uint32_t lengthNext = (initFrame[2] << 24) |
-								  (initFrame[3] << 16) |
-								  (initFrame[4] << 8)  |
-								  (initFrame[5]);
+			uint32_t crcInit = (initFrame[8] << 24) |
+						(initFrame[9] << 16) |
+						(initFrame[10] << 8)  |
+						(initFrame[11]);
 								  
 			uint8_t *frame = NULL;
 			
-			frame = malloc(lengthNext);
+			// Controllo il CRC del frame di init, escludendo i byte del CRC
+			crcInitCalc = CRC32_Compute(initFrame, initLength - 4);
 			
+			if(crcInit == crcInitCalc)
+				PrintLnDebugMessage("Crc32 OK!");
+			
+			// Aggiungo i 4 byte per il marker
+			// e i 4 byte per il Crc32
+			lengthDataNext += 8;
+			frame = malloc(lengthDataNext);
 			if(frame != NULL)
 			{
-				HAL_UART_Receive_IT(&huart1, frame, lengthNext);
+				HAL_UART_Receive_IT(&huart1, frame, lengthDataNext);
 				while(huart1.RxState != HAL_UART_STATE_READY)
 				{
 					osDelay(10);
@@ -79,9 +90,9 @@ void StartBLETask(void const * argument)
 				
 				// Loggo la risposta ricevuta
 				PrintDebugMessage("Frame: ");
-				PrintLnDebugMessage((char *)frame);
+				PrintLnDebugBuffer(frame, lengthDataNext);
 				
-				MessageDispatcher(frame, lengthNext);
+				MessageDispatcher(frame, lengthDataNext);
 			}
 		}
 		
@@ -110,12 +121,34 @@ void InitBLE(void)
 	osDelay(10);
 }
 
+#define GRP_TEST 0x3F3F
+#define CMD_TEST 0x3F3F
+
 void MessageDispatcher(uint8_t *message, int length)
 {
 	//if(strcmp((char*)message,"testtest") == 0)
 	//{
 	//	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 	//}
+	const int minLength = 12;
+	if(length >= minLength)
+	{
+		if(strncmp((char *)message, "DSCA", 4) == 0)
+		{
+			uint16_t group = *((uint16_t *)&message[4]);
+			uint16_t command = *((uint16_t *)&message[6]);
+			
+			switch(group)
+			{
+				case GRP_TEST:
+					if(command == CMD_TEST)
+					{
+						HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+					}
+					break;
+			}
+		}
+	}
 }
 
 void SendCommandAndReceive(char * message)
@@ -138,6 +171,29 @@ void SendCommandAndReceive(char * message)
 	{
 		PrintDebugMessage("Received: ");
 		PrintLnDebugMessage(reply);
+	}
+}
+
+void SendToModule_IT(char * message, int maxTimeout)
+{
+	// TODO : implementare
+	
+	//char * toSend;
+	//toSend = malloc(strlen(message) + 3);
+	//strcpy(toSend, message);
+	//strcat(toSend, "\r\n");
+	
+	//HAL_UART_Transmit(&huart1, (uint8_t*)toSend, strlen(toSend), maxTimeout);
+
+	//free(toSend);
+}
+
+void ReceiveFromModule_IT(uint8_t *message, unsigned long maxLength)
+{
+	HAL_UART_Receive_IT(&huart1, message, maxLength);
+	while(huart1.RxState != HAL_UART_STATE_READY)
+	{
+		osDelay(10);
 	}
 }
 

@@ -6,10 +6,10 @@
   */
 	
 #include "debug.h"
-#include "main.h"
 #include "usart.h"
 #include "string.h"
 #include "stdlib.h"
+#include "stdio.h"
 
 void PrintDebugMessage(const char * message)
 {
@@ -21,6 +21,25 @@ void PrintLnDebugMessage(const char * message)
 	char * toSend;
 	toSend = malloc(strlen(message) + 3);
 	strcpy(toSend, message);
+	strcat(toSend, "\r\n");
+	
+	HAL_UART_Transmit(&huart2, (uint8_t*)toSend, strlen(toSend), HAL_MAX_DELAY);
+
+	free(toSend);
+}
+
+void PrintLnDebugBuffer(uint8_t * buff, uint32_t buffLength)
+{
+	char * toSend;
+	int charIndex = 0;
+	toSend = malloc((buffLength * 2));
+	memset(toSend, 0x00, buffLength * 2);
+	
+	for(charIndex = 0; charIndex < buffLength; charIndex ++)
+	{
+		sprintf(&toSend[charIndex * 2], "%.2X", buff[charIndex]);
+	}
+	
 	strcat(toSend, "\r\n");
 	
 	HAL_UART_Transmit(&huart2, (uint8_t*)toSend, strlen(toSend), HAL_MAX_DELAY);

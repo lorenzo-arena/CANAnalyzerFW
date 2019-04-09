@@ -11,7 +11,12 @@
  extern "C" {
 #endif
 
+/* Includes ------------------------------------------------------------------*/
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal.h"
+
 void PrintDebugMessage(const char * message);
 void PrintLnDebugMessage(const char * message);
+void PrintLnDebugBuffer(uint8_t * buff, uint32_t buffLength);
 
 #endif /*__ can_H */

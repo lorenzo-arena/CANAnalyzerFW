@@ -71,7 +71,10 @@ void HAL_CRC_MspDeInit(CRC_HandleTypeDef* crcHandle)
 } 
 
 /* USER CODE BEGIN 1 */
-
+uint32_t CRC32_Compute(uint8_t *buff, uint32_t buffLength)
+{
+	return HAL_CRC_Calculate(&hcrc, (uint32_t*)buff, buffLength >> 2);
+}
 /* USER CODE END 1 */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
