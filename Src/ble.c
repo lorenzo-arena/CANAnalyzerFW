@@ -15,7 +15,7 @@
 
 /* Private functions */
 void InitBLE(void);
-void MessageDispatcher(unsigned char *message);
+void MessageDispatcher(uint8_t *message, int length);
 void SendCommandAndReceive(char * message);
 void SendToModule_NOIT(char * message, int maxTimeout);
 void ReceiveFromModule_NOIT(char * message, unsigned long maxLength, unsigned int maxTimout);
@@ -28,34 +28,65 @@ void ReceiveFromModule_NOIT(char * message, unsigned long maxLength, unsigned in
   */
 void StartBLETask(void const * argument)
 {
-	const int maxLength = 100;
-	unsigned char reply[maxLength];
 
 	InitBLE();
 	
 	// Ripulisco il buffer
-	//HAL_UART_Receive_IT(&huart1, (uint8_t*)reply, 1);
 	HAL_UART_Init(&huart1);
 
-  for(;;)
-  {
-		const int preMessageLength = 8;
+	for(;;)
+	{
+		// TODO : creare thread generico per la gestione dei messaggi
+		const int initLength = 10;
+		uint8_t initFrame[initLength];
 		
-		HAL_UART_Receive_IT(&huart1, (uint8_t*)reply, preMessageLength);
+		HAL_UART_Receive_IT(&huart1, initFrame, initLength);
 		while(huart1.RxState != HAL_UART_STATE_READY)
 		{
 			osDelay(10);
 		}
 		
 		// Loggo la risposta ricevuta
-		if(strlen((char *)reply) != 0)
+		PrintDebugMessage("Init Frame: ");
+		PrintLnDebugMessage((char *)initFrame);
+		
+		if(strncmp((char *)initFrame, "CA", 2) == 0)
 		{
-			PrintDebugMessage("Received: ");
-			PrintLnDebugMessage((char *)reply);
+			uint16_t crcInit = (initFrame[8] << 8) |
+								(initFrame[9]);
+							
+			uint16_t crcNext = (initFrame[6] << 8) |
+								(initFrame[7]);
+								
+			uint32_t lengthNext = (initFrame[2] << 24) |
+								  (initFrame[3] << 16) |
+								  (initFrame[4] << 8)  |
+								  (initFrame[5]);
+								  
+			uint8_t *frame = NULL;
+			
+			frame = malloc(lengthNext);
+			
+			if(frame != NULL)
+			{
+				HAL_UART_Receive_IT(&huart1, frame, lengthNext);
+				while(huart1.RxState != HAL_UART_STATE_READY)
+				{
+					osDelay(10);
+				}
+				
+				// Aggiungere controllo sul crc32
+				
+				// Loggo la risposta ricevuta
+				PrintDebugMessage("Frame: ");
+				PrintLnDebugMessage((char *)frame);
+				
+				MessageDispatcher(frame, lengthNext);
+			}
 		}
 		
-		MessageDispatcher(reply);
-  }
+		// Altrimenti pensare a come dare errore
+	}
 }
 
 void InitBLE(void)
@@ -64,26 +95,27 @@ void InitBLE(void)
 
 	SendCommandAndReceive("AT");
 	osDelay(10);
+	// Importante: oltre al reset SW sarebbe utile fare in modo di effettuare un reset FW
 	SendCommandAndReceive("AT+RESET");
 	osDelay(10);
-  SendCommandAndReceive("AT+ROLE0");
+	SendCommandAndReceive("AT+ROLE0");
 	osDelay(10);
-  SendCommandAndReceive("AT+UUID0xFFE0");
+	SendCommandAndReceive("AT+UUID0xFFE0");
 	osDelay(10);
-  SendCommandAndReceive("AT+CHAR0xFFE1");
+	SendCommandAndReceive("AT+CHAR0xFFE1");
 	osDelay(10);
-  SendCommandAndReceive("AT+NAMECANAnalyzer");
+	SendCommandAndReceive("AT+NAMECANAnalyzer");
 	osDelay(10);
 	SendCommandAndReceive("AT+RESET");
 	osDelay(10);
 }
 
-void MessageDispatcher(unsigned char *message)
+void MessageDispatcher(uint8_t *message, int length)
 {
-	if(strcmp((char*)message,"testtest") == 0)
-	{
-		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-	}
+	//if(strcmp((char*)message,"testtest") == 0)
+	//{
+	//	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	//}
 }
 
 void SendCommandAndReceive(char * message)
