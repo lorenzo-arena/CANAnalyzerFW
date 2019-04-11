@@ -7,6 +7,7 @@
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __DEBUG_H
 #define __DEBUG_H
+
 #ifdef __cplusplus
  extern "C" {
 #endif

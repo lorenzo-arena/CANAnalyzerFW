@@ -7,6 +7,7 @@
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __BLE_H
 #define __BLE_H
+
 #ifdef __cplusplus
  extern "C" {
 #endif

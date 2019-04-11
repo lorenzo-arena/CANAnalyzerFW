@@ -8,6 +8,7 @@
 #include "ble.h"
 
 #include "cmsis_os.h"
+#include "commands.h"
 #include "usart.h"
 #include "crc.h"
 #include "debug.h"
@@ -19,6 +20,7 @@ void InitBLE(void);
 void MessageDispatcher(uint8_t *message, int length);
 void SendCommandAndReceive(char * message);
 void SendToModule_NOIT(char * message, int maxTimeout);
+void SendToModule_IT(uint8_t *message, unsigned long maxLength);
 void ReceiveFromModule_NOIT(char * message, unsigned long maxLength, unsigned int maxTimout);
 void ReceiveFromModule_IT(uint8_t *message, unsigned long maxLength);
 /*********************/
@@ -30,7 +32,11 @@ void ReceiveFromModule_IT(uint8_t *message, unsigned long maxLength);
   */
 void StartBLETask(void const * argument)
 {
-
+	// Inizializzo il mutex per la linea UART del modulo
+	// Da testare se è ok
+	osMutexDef(uart1Mutex);
+	uart1Mutex = osMutexCreate(osMutex(uart1Mutex));
+	
 	InitBLE();
 	
 	// Ripulisco il buffer
@@ -42,11 +48,7 @@ void StartBLETask(void const * argument)
 		const int initLength = 12;
 		uint8_t initFrame[initLength];
 		
-		HAL_UART_Receive_IT(&huart1, initFrame, initLength);
-		while(huart1.RxState != HAL_UART_STATE_READY)
-		{
-			osDelay(10);
-		}
+		ReceiveFromModule_IT(initFrame, initLength);
 		
 		// Loggo la risposta ricevuta
 		PrintDebugMessage("Init Frame: ");
@@ -80,11 +82,7 @@ void StartBLETask(void const * argument)
 			frame = malloc(lengthDataNext);
 			if(frame != NULL)
 			{
-				HAL_UART_Receive_IT(&huart1, frame, lengthDataNext);
-				while(huart1.RxState != HAL_UART_STATE_READY)
-				{
-					osDelay(10);
-				}
+				ReceiveFromModule_IT(frame, lengthDataNext);
 				
 				// Aggiungere controllo sul crc32
 				
@@ -120,9 +118,6 @@ void InitBLE(void)
 	SendCommandAndReceive("AT+RESET");
 	osDelay(10);
 }
-
-#define GRP_TEST 0x3F3F
-#define CMD_TEST 0x3F3F
 
 void MessageDispatcher(uint8_t *message, int length)
 {
@@ -174,27 +169,16 @@ void SendCommandAndReceive(char * message)
 	}
 }
 
-void SendToModule_IT(char * message, int maxTimeout)
+void SendToModule_IT(uint8_t *message, unsigned long maxLength)
 {
-	// TODO : implementare
-	
-	//char * toSend;
-	//toSend = malloc(strlen(message) + 3);
-	//strcpy(toSend, message);
-	//strcat(toSend, "\r\n");
-	
-	//HAL_UART_Transmit(&huart1, (uint8_t*)toSend, strlen(toSend), maxTimeout);
-
-	//free(toSend);
+	HAL_UART_Transmit_IT(&huart1, message, maxLength);
+	osMutexWait(uart1Mutex, osWaitForever);
 }
 
 void ReceiveFromModule_IT(uint8_t *message, unsigned long maxLength)
 {
 	HAL_UART_Receive_IT(&huart1, message, maxLength);
-	while(huart1.RxState != HAL_UART_STATE_READY)
-	{
-		osDelay(10);
-	}
+	osMutexWait(uart1Mutex, osWaitForever);
 }
 
 void SendToModule_NOIT(char * message, int maxTimeout)

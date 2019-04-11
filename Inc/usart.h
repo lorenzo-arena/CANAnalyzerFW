@@ -27,6 +27,7 @@
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
+#include "cmsis_os.h"
 
 /* USER CODE END Includes */
 
@@ -35,6 +36,7 @@ extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN Private defines */
+extern osMutexId uart1Mutex;
 
 /* USER CODE END Private defines */
 

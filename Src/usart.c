@@ -21,7 +21,7 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
-
+osMutexId uart1Mutex;
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart4;
@@ -233,6 +233,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	if(huart->Instance==USART1)
 	{
 		huart1.RxState = HAL_UART_STATE_READY;
+		osMutexRelease(uart1Mutex);
+	}
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart->Instance==USART1)
+	{
+		huart1.RxState = HAL_UART_STATE_READY;
+		osMutexRelease(uart1Mutex);
 	}
 }
 /* USER CODE END 1 */
