@@ -7,13 +7,14 @@
 	
 #include "ble.h"
 
-#include "cmsis_os.h"
 #include "commands.h"
 #include "usart.h"
 #include "crc.h"
 #include "debug.h"
 #include "string.h"
 #include "stdlib.h"
+
+#define FRAME_HEADER "DSCA"
 
 /* Private functions */
 void InitBLE(void);
@@ -31,12 +32,7 @@ void ReceiveFromModule_IT(uint8_t *message, unsigned long maxLength);
   * @retval None
   */
 void StartBLETask(void const * argument)
-{
-	// Inizializzo il mutex per la linea UART del modulo
-	// Da testare se è ok
-	osMutexDef(uart1Mutex);
-	uart1Mutex = osMutexCreate(osMutex(uart1Mutex));
-	
+{	
 	InitBLE();
 	
 	// Ripulisco il buffer
@@ -47,16 +43,16 @@ void StartBLETask(void const * argument)
 		// TODO : creare thread generico per la gestione dei messaggi
 		const int initLength = 12;
 		uint8_t initFrame[initLength];
+		const int initResponseLength = 8;
+		uint8_t initResponseFrame[initResponseLength];
 		
+		PrintLnDebugMessage("Init Frame: ");
 		ReceiveFromModule_IT(initFrame, initLength);
 		
-		// Loggo la risposta ricevuta
-		PrintDebugMessage("Init Frame: ");
-		PrintLnDebugBuffer(initFrame, initLength);
-		
-		if(strncmp((char *)initFrame, "DSCA", 4) == 0)
+		if(strncmp((char *)initFrame, FRAME_HEADER, 4) == 0)
 		{
 			uint32_t crcInitCalc = 0;
+			uint32_t errorCode = 0x00000001;
 
 			uint32_t lengthDataNext = (initFrame[4] << 24) |
 						(initFrame[5] << 16) |
@@ -69,6 +65,7 @@ void StartBLETask(void const * argument)
 						(initFrame[11]);
 								  
 			uint8_t *frame = NULL;
+
 			
 			// Controllo il CRC del frame di init, escludendo i byte del CRC
 			crcInitCalc = CRC32_Compute(initFrame, initLength - 4);
@@ -76,19 +73,22 @@ void StartBLETask(void const * argument)
 			if(crcInit == crcInitCalc)
 				PrintLnDebugMessage("Crc32 OK!");
 			
+			// Invio la risposta affermativa
+			strcpy((char *)initResponseFrame, FRAME_HEADER);
+			memcpy(initResponseFrame + 4, &errorCode, sizeof(uint32_t));
+			
+			SendToModule_IT(initResponseFrame, initResponseLength);
+			
 			// Aggiungo i 4 byte per il marker
 			// e i 4 byte per il Crc32
 			lengthDataNext += 8;
 			frame = malloc(lengthDataNext);
 			if(frame != NULL)
 			{
+				PrintDebugMessage("Frame: ");
 				ReceiveFromModule_IT(frame, lengthDataNext);
 				
-				// Aggiungere controllo sul crc32
-				
-				// Loggo la risposta ricevuta
-				PrintDebugMessage("Frame: ");
-				PrintLnDebugBuffer(frame, lengthDataNext);
+				// TODO : Aggiungere controllo sul crc32
 				
 				MessageDispatcher(frame, lengthDataNext);
 			}
@@ -128,7 +128,7 @@ void MessageDispatcher(uint8_t *message, int length)
 	const int minLength = 12;
 	if(length >= minLength)
 	{
-		if(strncmp((char *)message, "DSCA", 4) == 0)
+		if(strncmp((char *)message, FRAME_HEADER, 4) == 0)
 		{
 			uint16_t group = *((uint16_t *)&message[4]);
 			uint16_t command = *((uint16_t *)&message[6]);
@@ -171,14 +171,22 @@ void SendCommandAndReceive(char * message)
 
 void SendToModule_IT(uint8_t *message, unsigned long maxLength)
 {
+	// Loggo il messaggio inviato
+	PrintDebugMessage("Sending: ");
+	PrintLnDebugBuffer(message, maxLength);
+	
 	HAL_UART_Transmit_IT(&huart1, message, maxLength);
-	osMutexWait(uart1Mutex, osWaitForever);
+	osSignalWait(UART1MessageSentSignal, osWaitForever);
 }
 
 void ReceiveFromModule_IT(uint8_t *message, unsigned long maxLength)
 {
 	HAL_UART_Receive_IT(&huart1, message, maxLength);
-	osMutexWait(uart1Mutex, osWaitForever);
+	osSignalWait(UART1MessageReceivedSignal, osWaitForever);
+	
+	// Loggo la risposta ricevuta
+	PrintDebugMessage("Received: ");
+	PrintLnDebugBuffer(message, maxLength);
 }
 
 void SendToModule_NOIT(char * message, int maxTimeout)

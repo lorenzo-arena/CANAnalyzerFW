@@ -36,8 +36,8 @@ extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN Private defines */
-extern osMutexId uart1Mutex;
-
+#define UART1MessageReceivedSignal 0x0001
+#define UART1MessageSentSignal 0x0002
 /* USER CODE END Private defines */
 
 void MX_UART4_Init(void);
