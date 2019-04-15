@@ -52,7 +52,7 @@ void StartBLETask(void const * argument)
 		if(strncmp((char *)initFrame, FRAME_HEADER, 4) == 0)
 		{
 			uint32_t crcInitCalc = 0;
-			uint32_t errorCode = 0x00000001;
+			uint32_t errorCode = 0x00000000;
 
 			uint32_t lengthDataNext = (initFrame[4] << 24) |
 						(initFrame[5] << 16) |
@@ -65,7 +65,6 @@ void StartBLETask(void const * argument)
 						(initFrame[11]);
 								  
 			uint8_t *frame = NULL;
-
 			
 			// Controllo il CRC del frame di init, escludendo i byte del CRC
 			crcInitCalc = CRC32_Compute(initFrame, initLength - 4);
@@ -85,7 +84,7 @@ void StartBLETask(void const * argument)
 			frame = malloc(lengthDataNext);
 			if(frame != NULL)
 			{
-				PrintDebugMessage("Frame: ");
+				PrintLnDebugMessage("Frame: ");
 				ReceiveFromModule_IT(frame, lengthDataNext);
 				
 				// TODO : Aggiungere controllo sul crc32
