@@ -20,14 +20,16 @@
 
 #define FRAME_HEADER "DSCA"
 
+const int maxCommandTimeout = 500;
+
 /* Private functions */
 void InitBLE(void);
 void MessageDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBuff, uint32_t dataLength);
 void SendCommandAndReceive(char * message);
 void SendToModule_NOIT(char * message, int maxTimeout);
-void SendToModule_IT(uint8_t *message, unsigned long maxLength);
-void ReceiveFromModule_NOIT(char * message, unsigned long maxLength, unsigned int maxTimout);
-void ReceiveFromModule_IT(uint8_t *message, unsigned long maxLength);
+void SendToModule_IT(uint8_t *message, uint32_t maxLength);
+void ReceiveFromModule_NOIT(char * message, uint32_t maxLength, uint32_t maxTimeout);
+void ReceiveFromModule_IT(uint8_t *message, uint32_t maxLength, uint32_t timeout);
 bool ReceiveInitCommand(uint32_t *nextLength);
 bool ReceiveCommand(uint32_t nextLength);
 /*********************/
@@ -101,7 +103,7 @@ bool ReceiveInitCommand(uint32_t *nextLength)
 	uint32_t crcInitSent = 0;
 
 	PrintLnDebugMessage("Receiving Init Frame..");
-	ReceiveFromModule_IT(initFrame, initLength);
+	ReceiveFromModule_IT(initFrame, initLength, osWaitForever);
 	
 	if(strncmp((char *)initFrame, FRAME_HEADER, 4) != 0)
 		Throw(MARKER_ERROR);
@@ -144,7 +146,7 @@ bool ReceiveCommand(uint32_t length)
 		Throw(MEMORY_ERROR);
 
 	PrintLnDebugMessage("Receiving Command Frame..");
-	ReceiveFromModule_IT(frame, commandLength);
+	ReceiveFromModule_IT(frame, commandLength, maxCommandTimeout);
 	
 	if(strncmp((char *)frame, FRAME_HEADER, 4) != 0)
 	{
@@ -193,27 +195,41 @@ void MessageDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dat
 		case GRP_INFO:
 			if(commandCode == CMD_GETSERIALNUMBER)
 			{
-				uint8_t responseFrame[12];
+				uint8_t responseFrame[16];
+				uint32_t crcResponse = 0;
 				
 				PrintLnDebugMessage("GetSerialNumber");
 
-				// Invio la risposta affermativa
+				// Preparo i dati
 				strcpy((char *)responseFrame, FRAME_HEADER);
 				SetBufferFromUInt32(NO_ERROR, responseFrame, 4);
 				SetBufferFromUInt32(serialNumber, responseFrame, 8);
-				SendToModule_IT(responseFrame, 12);
+				
+				// Calcolo il crc
+				crcResponse = CRC32_Compute(responseFrame, sizeof(responseFrame) - 4);
+				SetBufferFromUInt32(crcResponse, responseFrame, sizeof(responseFrame) - 4);
+				
+				// Invio la risposta affermativa
+				SendToModule_IT(responseFrame, sizeof(responseFrame));
 			}
 			else if(commandCode == CMD_GETFIRMWAREVERSION)
 			{
-				uint8_t responseFrame[12];
+				uint8_t responseFrame[16];
+				uint32_t crcResponse = 0;
 				
 				PrintLnDebugMessage("GetFirmwareVersion");
 
-				// Invio la risposta affermativa
+				// Preparo i dati
 				strcpy((char *)responseFrame, FRAME_HEADER);
 				SetBufferFromUInt32(NO_ERROR, responseFrame, 4);
 				SetBufferFromUInt32(firmwareVersion, responseFrame, 8);
-				SendToModule_IT(responseFrame, 12);
+				
+				// Calcolo il crc
+				crcResponse = CRC32_Compute(responseFrame, sizeof(responseFrame) - 4);
+				SetBufferFromUInt32(crcResponse, responseFrame, sizeof(responseFrame) - 4);
+				
+				// Invio la risposta affermativa
+				SendToModule_IT(responseFrame, sizeof(responseFrame));
 			}
 			else
 				Throw(COMMAND_NOT_VALID_ERROR);
@@ -248,7 +264,7 @@ void SendCommandAndReceive(char * message)
 	}
 }
 
-void SendToModule_IT(uint8_t *message, unsigned long maxLength)
+void SendToModule_IT(uint8_t *message, uint32_t maxLength)
 {
 	// Loggo il messaggio inviato
 	PrintDebugMessage("Sending: ");
@@ -258,10 +274,13 @@ void SendToModule_IT(uint8_t *message, unsigned long maxLength)
 	osSignalWait(UART1MessageSentSignal, osWaitForever);
 }
 
-void ReceiveFromModule_IT(uint8_t *message, unsigned long maxLength)
+void ReceiveFromModule_IT(uint8_t *message, uint32_t maxLength, uint32_t timeout)
 {
 	HAL_UART_Receive_IT(&huart1, message, maxLength);
-	osSignalWait(UART1MessageReceivedSignal, osWaitForever);
+	osSignalWait(UART1MessageReceivedSignal, timeout);
+	
+	if(huart1.RxState == HAL_UART_STATE_BUSY_RX)
+		Throw(TIMEOUT_ERROR);
 	
 	// Loggo la risposta ricevuta
 	PrintDebugMessage("Received: ");
@@ -280,9 +299,9 @@ void SendToModule_NOIT(char * message, int maxTimeout)
 	free(toSend);
 }
 
-void ReceiveFromModule_NOIT(char * message, unsigned long maxLength, unsigned int maxTimout)
+void ReceiveFromModule_NOIT(char * message, uint32_t maxLength, uint32_t maxTimeout)
 {
-	HAL_UART_Receive(&huart1, (uint8_t*)message, maxLength, maxTimout);
+	HAL_UART_Receive(&huart1, (uint8_t*)message, maxLength, maxTimeout);
 }
 
 
