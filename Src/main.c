@@ -51,7 +51,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+const uint32_t firmwareVersion = 0x00010000;
+const uint32_t serialNumber = 12345678;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

@@ -44,6 +44,8 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 extern osThreadId bleTaskHandle;
+extern const uint32_t firmwareVersion;
+extern const uint32_t serialNumber;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

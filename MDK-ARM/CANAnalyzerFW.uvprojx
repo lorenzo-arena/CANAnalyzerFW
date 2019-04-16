@@ -312,7 +312,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
+            <Optim>1</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -456,6 +456,16 @@
               <FileName>stm32f4xx_hal_timebase_tim.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Src/stm32f4xx_hal_timebase_tim.c</FilePath>
+            </File>
+            <File>
+              <FileName>cexception.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\cexception.c</FilePath>
+            </File>
+            <File>
+              <FileName>arr_converter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\arr_converter.c</FilePath>
             </File>
           </Files>
         </Group>
