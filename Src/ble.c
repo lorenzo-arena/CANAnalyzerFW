@@ -61,12 +61,18 @@ void StartBLETask(void const * argument)
 		}
 		Catch(ex)
 		{
-			// Invio il messaggio di error
-			uint8_t errorFrame[8];
-			
-			strcpy((char *)errorFrame, FRAME_HEADER);
-			memcpy(errorFrame + 4, &ex, sizeof(uint32_t));
-			SendToModule_IT(errorFrame, sizeof(errorFrame));
+			if(ex == TIMEOUT_ERROR)
+				PrintLnDebugMessage("Timeout!");
+			else
+			{
+						
+				// Invio il messaggio di error
+				uint8_t errorFrame[8];
+				
+				strcpy((char *)errorFrame, FRAME_HEADER);
+				memcpy(errorFrame + 4, &ex, sizeof(uint32_t));
+				SendToModule_IT(errorFrame, sizeof(errorFrame));
+			}
 		}
 	}
 }
@@ -96,11 +102,12 @@ bool ReceiveInitCommand(uint32_t *nextLength)
 {
 	const int initLength = 12;
 	uint8_t initFrame[initLength];
-	const int initResponseLength = 8;
+	const int initResponseLength = 12;
 	uint8_t initResponseFrame[initResponseLength];
 	uint32_t crcInitCalc = 0;
 	uint32_t lengthDataNext = 0;
 	uint32_t crcInitSent = 0;
+	uint32_t crcResponse = 0;
 
 	PrintLnDebugMessage("Receiving Init Frame..");
 	ReceiveFromModule_IT(initFrame, initLength, osWaitForever);
@@ -123,6 +130,10 @@ bool ReceiveInitCommand(uint32_t *nextLength)
 	// Invio la risposta affermativa
 	strcpy((char *)initResponseFrame, FRAME_HEADER);
 	SetBufferFromUInt32(NO_ERROR, initResponseFrame, 4);
+	
+	// Calcolo il crc
+	crcResponse = CRC32_Compute(initResponseFrame, sizeof(initResponseFrame) - 4);
+	SetBufferFromUInt32(crcResponse, initResponseFrame, sizeof(initResponseFrame) - 4);
 	
 	SendToModule_IT(initResponseFrame, initResponseLength);		
 	

@@ -27,6 +27,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
 #include "ble.h"
+#include "dispatcher.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +48,7 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 osThreadId bleTaskHandle;
+osThreadId dispatcherTaskHandle;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 
@@ -91,9 +93,11 @@ void MX_FREERTOS_Init(void) {
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
 	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 128);
   bleTaskHandle = osThreadCreate(osThread(bleTask), NULL);
+	
+	osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 128);
+  dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
   /* USER CODE END RTOS_THREADS */
 
 }

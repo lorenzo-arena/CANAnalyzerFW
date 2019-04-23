@@ -467,6 +467,21 @@
               <FileType>1</FileType>
               <FilePath>..\Src\arr_converter.c</FilePath>
             </File>
+            <File>
+              <FileName>dispatcher.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\dispatcher.c</FilePath>
+            </File>
+            <File>
+              <FileName>errors.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\errors.c</FilePath>
+            </File>
+            <File>
+              <FileName>commands.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\commands.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

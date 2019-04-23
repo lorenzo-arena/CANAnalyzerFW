@@ -9,12 +9,16 @@
 #ifndef __COMMANDS_H
 #define __COMMANDS_H
 
-#define GRP_TEST 									0x3F3F
-#define CMD_TEST 									0x3F3F
+/* Includes ------------------------------------------------------------------*/
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal.h"
 
-#define GRP_INFO 									0x0000
-#define CMD_GETSERIALNUMBER				0x0001
-#define CMD_GETFIRMWAREVERSION		0x0002
+static const uint16_t GRP_TEST = 0x3F3F;
+static const uint16_t CMD_TEST = 0x3F3F;
+
+static const uint16_t GRP_INFO = 0x0000;
+static const uint16_t CMD_GETSERIALNUMBER = 0x0001;
+static const uint16_t CMD_GETFIRMWAREVERSION = 0x0002;
 
 #endif
 
