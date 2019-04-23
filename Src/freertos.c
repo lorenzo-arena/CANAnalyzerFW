@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */     
 #include "ble.h"
 #include "dispatcher.h"
+#include "mailformats.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,6 +50,9 @@
 /* USER CODE BEGIN Variables */
 osThreadId bleTaskHandle;
 osThreadId dispatcherTaskHandle;
+
+osMailQId commandMailHandle;
+osMailQId commandResponseMailHandle;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 
@@ -84,7 +88,14 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+	osMailQDef(commandMail, 1, mailCommand);
+	
+	commandMailHandle = osMailCreate(osMailQ(commandMail), NULL);
+	
+	osMailQDef(commandResponseMail, 1, mailCommandResponse);
+	
+	commandResponseMailHandle = osMailCreate(osMailQ(commandResponseMail), NULL);
+
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */

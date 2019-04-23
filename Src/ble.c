@@ -11,6 +11,7 @@
 #include "commands.h"
 #include "cexception.h"
 #include "arr_converter.h"
+#include "mailformats.h"
 #include "usart.h"
 #include "crc.h"
 #include "debug.h"
@@ -189,67 +190,48 @@ bool ReceiveCommand(uint32_t length)
 
 void MessageDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBuff, uint32_t dataLength)
 {
-	PrintLnDebugMessage("Received command: ");
-
-	switch(commandGroup)
+	mailCommand *commandData = NULL;
+	mailCommandResponse *commandResponse = NULL;
+	osEvent event;
+	uint8_t responseFrame[16];
+	uint32_t crcResponse = 0;
+	
+	commandData = (mailCommand *)osMailAlloc(commandMailHandle, osWaitForever);
+	
+	commandData->group = commandGroup;
+	commandData->code = commandCode;
+	
+	osMailPut(commandMailHandle, commandData);
+	
+	event = osMailGet(commandResponseMailHandle, osWaitForever);
+	commandResponse = (mailCommandResponse *)event.value.p;       // ".p" indicates that the message is a pointer
+	
+	// Gestione risposta
+	if(commandResponse->errorCode != 0)
 	{
-		case GRP_TEST:
-			if(commandCode == CMD_TEST)
-			{
-				PrintLnDebugMessage("Test");
-				HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-			}
-			else
-				Throw(COMMAND_NOT_VALID_ERROR);
-			break;
-			
-		case GRP_INFO:
-			if(commandCode == CMD_GETSERIALNUMBER)
-			{
-				uint8_t responseFrame[16];
-				uint32_t crcResponse = 0;
-				
-				PrintLnDebugMessage("GetSerialNumber");
-
-				// Preparo i dati
-				strcpy((char *)responseFrame, FRAME_HEADER);
-				SetBufferFromUInt32(NO_ERROR, responseFrame, 4);
-				SetBufferFromUInt32(serialNumber, responseFrame, 8);
-				
-				// Calcolo il crc
-				crcResponse = CRC32_Compute(responseFrame, sizeof(responseFrame) - 4);
-				SetBufferFromUInt32(crcResponse, responseFrame, sizeof(responseFrame) - 4);
-				
-				// Invio la risposta affermativa
-				SendToModule_IT(responseFrame, sizeof(responseFrame));
-			}
-			else if(commandCode == CMD_GETFIRMWAREVERSION)
-			{
-				uint8_t responseFrame[16];
-				uint32_t crcResponse = 0;
-				
-				PrintLnDebugMessage("GetFirmwareVersion");
-
-				// Preparo i dati
-				strcpy((char *)responseFrame, FRAME_HEADER);
-				SetBufferFromUInt32(NO_ERROR, responseFrame, 4);
-				SetBufferFromUInt32(firmwareVersion, responseFrame, 8);
-				
-				// Calcolo il crc
-				crcResponse = CRC32_Compute(responseFrame, sizeof(responseFrame) - 4);
-				SetBufferFromUInt32(crcResponse, responseFrame, sizeof(responseFrame) - 4);
-				
-				// Invio la risposta affermativa
-				SendToModule_IT(responseFrame, sizeof(responseFrame));
-			}
-			else
-				Throw(COMMAND_NOT_VALID_ERROR);
-			break;
-			
-		default:
-			PrintLnDebugMessage("Unknown group command");
-			Throw(GROUP_NOT_VALID_ERROR);
+		osMailFree(commandResponseMailHandle, commandResponse);
+		Throw(commandResponse->errorCode);
 	}
+
+	if(!commandResponse->needBuffer)
+	{
+		strcpy((char *)responseFrame, FRAME_HEADER);
+		SetBufferFromUInt32(NO_ERROR, responseFrame, 4);
+		SetBufferFromUInt32(commandResponse->response, responseFrame, 8);
+		
+		// Calcolo il crc
+		crcResponse = CRC32_Compute(responseFrame, sizeof(responseFrame) - 4);
+		SetBufferFromUInt32(crcResponse, responseFrame, sizeof(responseFrame) - 4);
+		
+		// Invio la risposta affermativa
+		SendToModule_IT(responseFrame, sizeof(responseFrame));
+	}
+	else
+	{
+		
+	}
+
+	osMailFree(commandResponseMailHandle, commandResponse);
 }
 
 void SendCommandAndReceive(char * message)
