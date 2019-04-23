@@ -17,6 +17,9 @@
 #include "stdlib.h"
 #include "stdbool.h"
 
+void DispatchTestCommand(uint16_t command);
+uint32_t DispatchInfoCommand(uint16_t command);
+
 /**
   * @brief  Function implementing the bleTask thread.
   * @param  argument: Not used 
@@ -25,13 +28,12 @@
 void StartDispatcherTask(void const * argument)
 {	
 	CEXCEPTION_T ex;
+	mailCommand *commandData = NULL;
+	mailCommandResponse *commandResponse = NULL;
+	osEvent event;
 
 	for(;;)
-	{
-		mailCommand *commandData = NULL;
-		mailCommandResponse *commandResponse = NULL;
-		osEvent event;
-		
+	{		
 		event = osMailGet(commandMailHandle, osWaitForever);
 		commandData = (mailCommand *)event.value.p;
 		
@@ -43,36 +45,13 @@ void StartDispatcherTask(void const * argument)
 			switch(commandData->group)
 			{
 				case GRP_TEST:
-					if(commandData->code == CMD_TEST)
-					{
-						PrintLnDebugMessage("Test");
-						HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-					}
-					else
-						Throw(COMMAND_NOT_VALID_ERROR);
+					DispatchTestCommand(commandData->code);
 					break;
 					
 				case GRP_INFO:
-					if(commandData->code == CMD_GETSERIALNUMBER)
-					{
-						PrintLnDebugMessage("GetSerialNumber");
-
-						// Preparo i dati
-						commandResponse->errorCode = NO_ERROR;
-						commandResponse->needBuffer = false;
-						commandResponse->response = serialNumber;
-					}
-					else if(commandData->code == CMD_GETFIRMWAREVERSION)
-					{						
-						PrintLnDebugMessage("GetFirmwareVersion");
-
-						// Preparo i dati
-						commandResponse->errorCode = NO_ERROR;
-						commandResponse->needBuffer = false;
-						commandResponse->response = firmwareVersion;
-					}
-					else
-						Throw(COMMAND_NOT_VALID_ERROR);
+					commandResponse->errorCode = NO_ERROR;
+					commandResponse->needBuffer = false;
+					commandResponse->response = DispatchInfoCommand(commandData->code);
 					break;
 					
 				default:
@@ -94,5 +73,36 @@ void StartDispatcherTask(void const * argument)
 			osMailFree(commandMailHandle, commandData);
 		}
 	}
+}
+
+void DispatchTestCommand(uint16_t command)
+{
+	if(command == CMD_TEST)
+	{
+		PrintLnDebugMessage("Test");
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	}
+	else
+		Throw(COMMAND_NOT_VALID_ERROR);
+}
+
+uint32_t DispatchInfoCommand(uint16_t command)
+{
+	if(command == CMD_GETSERIALNUMBER)
+	{
+		PrintLnDebugMessage("GetSerialNumber");
+
+		// Preparo i dati
+		return serialNumber;
+	}
+	else if(command == CMD_GETFIRMWAREVERSION)
+	{						
+		PrintLnDebugMessage("GetFirmwareVersion");
+
+		// Preparo i dati
+		return firmwareVersion;
+	}
+	else
+		Throw(COMMAND_NOT_VALID_ERROR);
 }
 
