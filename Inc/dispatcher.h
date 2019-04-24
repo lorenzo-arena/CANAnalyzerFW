@@ -19,5 +19,5 @@
 
 void StartDispatcherTask(void const * argument);
 
-#endif /*__ can_H */
+#endif /*__DISPATCHER_H */
 

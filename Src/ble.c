@@ -13,6 +13,7 @@
 #include "arr_converter.h"
 #include "mailformats.h"
 #include "usart.h"
+#include "can.h"
 #include "crc.h"
 #include "debug.h"
 #include "string.h"

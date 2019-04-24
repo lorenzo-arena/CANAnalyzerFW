@@ -1,9 +1,12 @@
 #MicroXplorer Configuration settings - do not modify
 CAN1.CalculateTimeQuantum=1000.0
-CAN1.IPParameters=CalculateTimeQuantum
+CAN1.IPParameters=CalculateTimeQuantum,Mode
+CAN1.Mode=CAN_MODE_SILENT
 CAN2.CalculateTimeQuantum=1000.0
-CAN2.IPParameters=CalculateTimeQuantum
-FREERTOS.IPParameters=Tasks01
+CAN2.IPParameters=CalculateTimeQuantum,Mode
+CAN2.Mode=CAN_MODE_SILENT
+FREERTOS.INCLUDE_eTaskGetState=1
+FREERTOS.IPParameters=Tasks01,INCLUDE_eTaskGetState
 FREERTOS.Tasks01=defaultTask,0,128,StartDefaultTask,Default,NULL
 File.Version=6
 KeepUserPlacement=false
@@ -51,6 +54,8 @@ Mcu.UserName=STM32F446RETx
 MxCube.Version=5.1.0
 MxDb.Version=DB.5.0.10
 NVIC.BusFault_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
+NVIC.CAN1_RX0_IRQn=true\:5\:0\:false\:false\:true\:true\:true\:true
+NVIC.CAN2_RX0_IRQn=true\:5\:0\:false\:false\:true\:true\:true\:true
 NVIC.DebugMonitor_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
 NVIC.HardFault_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
 NVIC.MemoryManagement_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false

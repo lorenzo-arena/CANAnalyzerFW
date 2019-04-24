@@ -20,4 +20,4 @@ void PrintDebugMessage(const char * message);
 void PrintLnDebugMessage(const char * message);
 void PrintLnDebugBuffer(uint8_t * buff, uint32_t buffLength);
 
-#endif /*__ can_H */
+#endif /*__DEBUG_H */
