@@ -22,7 +22,9 @@
 
 #define FRAME_HEADER "DSCA"
 
-const int maxCommandTimeout = 500;
+// Per adesso cambio
+//const int maxCommandTimeout = 500;
+const int maxCommandTimeout = osWaitForever;
 
 /* Private functions */
 void InitBLE(void);

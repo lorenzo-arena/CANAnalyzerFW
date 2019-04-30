@@ -20,11 +20,13 @@ static const uint16_t GRP_INFO = 0x0000;
 static const uint16_t CMD_GETSERIALNUMBER = 0x0001;
 static const uint16_t CMD_GETFIRMWAREVERSION = 0x0002;
 
-static const uint16_t GRP_CAN_LINE = 0x0001;
-static const uint16_t CMD_STARTCANLINE1 = 0x0001;
-static const uint16_t CMD_STOPCANLINE1 = 0x0002;
-static const uint16_t CMD_STARTCANLINE2 = 0x0003;
-static const uint16_t CMD_STOPCANLINE2 = 0x0004;
+static const uint16_t GRP_CAN_LINE1 = 0x0001;
+static const uint16_t GRP_CAN_LINE2 = 0x0002;
+static const uint16_t CMD_STARTCANLINE = 0x0001;
+static const uint16_t CMD_STOPCANLINE = 0x0002;
+static const uint16_t CMD_SETCANPARAM = 0x0003;
+
+static const uint16_t GRP_K_LINE = 0x0003;
 
 #endif
 
