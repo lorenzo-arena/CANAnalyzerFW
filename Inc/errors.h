@@ -13,21 +13,22 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal.h"
 	
-extern const uint32_t NO_ERROR;
+static const uint32_t NO_ERROR = 0x00000000;
 
 // Communication errors
-extern const uint32_t COMMUNICATION_ERROR;
+static const uint32_t COMMUNICATION_ERROR = 0x0001;
 
-extern const uint32_t TIMEOUT_ERROR;
-extern const uint32_t MARKER_ERROR;
-extern const uint32_t CRC_ERROR;
-extern const uint32_t MEMORY_ERROR;
+static const uint32_t TIMEOUT_ERROR = ((COMMUNICATION_ERROR << 16) | 0x00000000);
+static const uint32_t MARKER_ERROR = ((COMMUNICATION_ERROR << 16) | 0x00000001);
+static const uint32_t CRC_ERROR = ((COMMUNICATION_ERROR << 16) | 0x00000002);
+static const uint32_t MEMORY_ERROR = ((COMMUNICATION_ERROR << 16) | 0x00000003);
 	
 // Command Errors
-extern const uint32_t COMMAND_ERROR;
+static const uint32_t COMMAND_ERROR = 0x0002;
 
-extern const uint32_t GROUP_NOT_VALID_ERROR;
-extern const uint32_t COMMAND_NOT_VALID_ERROR;
+static const uint32_t GROUP_NOT_VALID_ERROR = ((COMMAND_ERROR << 16) | 0x00000001);
+static const uint32_t COMMAND_NOT_VALID_ERROR = ((COMMAND_ERROR << 16) | 0x00000002);
+static const uint32_t COMMAND_NOT_EXECUTED_ERROR = ((COMMAND_ERROR << 16) | 0x00000003);
 
 #endif
 
