@@ -18,10 +18,10 @@
 #include "stdlib.h"
 #include "stdbool.h"
 
-void DispatchTestCommand(uint16_t command);
-void DispatchCAN1Command(uint16_t command);
-void DispatchCAN2Command(uint16_t command);
-uint32_t DispatchInfoCommand(uint16_t command);
+uint32_t DispatchTestCommand(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength);
+uint32_t DispatchCAN1Command(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength);
+uint32_t DispatchCAN2Command(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength);
+uint32_t DispatchInfoCommand(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength);
 
 osThreadId can1TaskHandle = NULL;
 osThreadId can2TaskHandle = NULL;
@@ -47,31 +47,27 @@ void StartDispatcherTask(void const * argument)
 		{
 			// Gestione comando
 			commandResponse = (mailCommandResponse *)osMailAlloc(commandResponseMailHandle, osWaitForever);
+			commandResponse->errorCode = NO_ERROR;
+			commandResponse->response = 0;
+			commandResponse->responseBuff = NULL;
+			commandResponse->responseBuffLength = 0;
 			
 			switch(commandData->group)
 			{
 				case GRP_TEST:
-					DispatchTestCommand(commandData->code);
+					commandResponse->response = DispatchTestCommand(commandData->code, commandResponse->responseBuff, &(commandResponse->responseBuffLength));
 					break;
 					
 				case GRP_INFO:
-					commandResponse->errorCode = NO_ERROR;
-					commandResponse->needBuffer = false;
-					commandResponse->response = DispatchInfoCommand(commandData->code);
+					commandResponse->response = DispatchInfoCommand(commandData->code, commandResponse->responseBuff, &(commandResponse->responseBuffLength));
 					break;
 				
 				case GRP_CAN_LINE1:
-					commandResponse->errorCode = NO_ERROR;
-					commandResponse->needBuffer = false;
-					commandResponse->response = 0;
-					DispatchCAN1Command(commandData->code);
+					commandResponse->response = DispatchCAN1Command(commandData->code, commandResponse->responseBuff, &(commandResponse->responseBuffLength));
 					break;
 				
 				case GRP_CAN_LINE2:
-					commandResponse->errorCode = NO_ERROR;
-					commandResponse->needBuffer = false;
-					commandResponse->response = 0;
-					DispatchCAN2Command(commandData->code);
+					commandResponse->response = DispatchCAN2Command(commandData->code, commandResponse->responseBuff, &(commandResponse->responseBuffLength));
 					break;
 					
 				default:
@@ -85,9 +81,7 @@ void StartDispatcherTask(void const * argument)
 		Catch(ex)
 		{
 			// Preparo i dati
-			commandResponse->errorCode = ex;
-			commandResponse->needBuffer = false;
-			commandResponse->response = 0;		
+			commandResponse->errorCode = ex;	
 			
 			osMailPut(commandResponseMailHandle, commandResponse);
 			osMailFree(commandMailHandle, commandData);
@@ -95,7 +89,7 @@ void StartDispatcherTask(void const * argument)
 	}
 }
 
-void DispatchTestCommand(uint16_t command)
+uint32_t DispatchTestCommand(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength)
 {
 	if(command == CMD_TEST)
 	{
@@ -104,9 +98,11 @@ void DispatchTestCommand(uint16_t command)
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);
+	
+	return 0;
 }
 
-uint32_t DispatchInfoCommand(uint16_t command)
+uint32_t DispatchInfoCommand(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength)
 {
 	if(command == CMD_GETSERIALNUMBER)
 	{
@@ -128,7 +124,7 @@ uint32_t DispatchInfoCommand(uint16_t command)
 	return 0;
 }
 
-void DispatchCAN1Command(uint16_t command)
+uint32_t DispatchCAN1Command(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength)
 {
 	if(command == CMD_STARTCANLINE)
 	{
@@ -155,9 +151,11 @@ void DispatchCAN1Command(uint16_t command)
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);
+	
+	return 0;
 }
 
-void DispatchCAN2Command(uint16_t command)
+uint32_t DispatchCAN2Command(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength)
 {
 	if(command == CMD_STARTCANLINE)
 	{
@@ -184,5 +182,7 @@ void DispatchCAN2Command(uint16_t command)
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);
+	
+	return 0;
 }
 

@@ -188,6 +188,7 @@ bool ReceiveCommand(uint32_t length)
 	else
 		MessageDispatcher(group, command, &frame[8], commandLength - 12);
 	
+	free(frame);
 	return true;
 }
 
@@ -203,6 +204,8 @@ void MessageDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dat
 	
 	commandData->group = commandGroup;
 	commandData->code = commandCode;
+	commandData->dataBuff = dataBuff;
+	commandData->dataLength = dataLength;
 	
 	osMailPut(commandMailHandle, commandData);
 	
@@ -216,7 +219,7 @@ void MessageDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dat
 		Throw(commandResponse->errorCode);
 	}
 
-	if(!commandResponse->needBuffer)
+	if(commandResponse->responseBuff == NULL)
 	{
 		strcpy((char *)responseFrame, FRAME_HEADER);
 		SetBufferFromUInt32(NO_ERROR, responseFrame, 4);

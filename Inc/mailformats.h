@@ -17,13 +17,16 @@ typedef struct
 {
 	uint16_t group;
 	uint16_t code;
+	uint8_t *dataBuff;
+	uint32_t dataLength;
 } mailCommand;
 
 typedef struct
 {
 	uint32_t errorCode;
 	uint32_t response;
-	uint32_t needBuffer;
+	uint8_t *responseBuff;
+	uint32_t responseBuffLength;
 } mailCommandResponse;
 
 #endif
