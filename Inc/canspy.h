@@ -17,7 +17,20 @@
 #include "stm32f4xx_hal.h"
 #include "cmsis_os.h"
 
+#include "stdbool.h"
+
+typedef struct
+{
+	uint32_t bitTiming;
+	uint32_t frameFormat;
+	bool errorReception;
+	bool applyMaskAndId;
+	uint32_t mask;
+	uint32_t id;
+} CANSpyParam;
+
 void StartCANSpyTask(void const * argument);
+void SetCANLineParameter(int lineNumber, CANSpyParam params);
 
 #endif /*__CANSPY_H */
 

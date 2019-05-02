@@ -30,6 +30,7 @@ const int maxCommandTimeout = osWaitForever;
 void InitBLE(void);
 void MessageDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBuff, uint32_t dataLength);
 void SendCommandAndReceive(char * message);
+void SendError(uint32_t errorCode);
 void SendToModule_NOIT(char * message, int maxTimeout);
 void SendToModule_IT(uint8_t *message, uint32_t maxLength);
 void ReceiveFromModule_NOIT(char * message, uint32_t maxLength, uint32_t maxTimeout);
@@ -69,13 +70,8 @@ void StartBLETask(void const * argument)
 				PrintLnDebugMessage("Timeout!");
 			else
 			{
-						
-				// Invio il messaggio di error
-				uint8_t errorFrame[8];
-				
-				strcpy((char *)errorFrame, FRAME_HEADER);
-				memcpy(errorFrame + 4, &ex, sizeof(uint32_t));
-				SendToModule_IT(errorFrame, sizeof(errorFrame));
+				// Invio il messaggio di errore
+				SendError(ex);
 			}
 		}
 	}
@@ -263,11 +259,32 @@ void SendCommandAndReceive(char * message)
 	}
 }
 
+void SendError(uint32_t errorCode)
+{
+	uint8_t errorFrame[12];
+	uint32_t crcResponse = 0;
+				
+	// Imposto l'header
+	strcpy((char *)errorFrame, FRAME_HEADER);
+	
+	// Imposto il codice di errore
+	memcpy(errorFrame + 4, &errorCode, sizeof(uint32_t));
+	
+	// Calcolo il crc
+	crcResponse = CRC32_Compute(errorFrame, sizeof(errorFrame) - 4);
+	SetBufferFromUInt32(crcResponse, errorFrame, sizeof(errorFrame) - 4);
+
+	SendToModule_IT(errorFrame, sizeof(errorFrame));
+}
+
 void SendToModule_IT(uint8_t *message, uint32_t maxLength)
 {
 	// Loggo il messaggio inviato
 	PrintDebugMessage("Sending: ");
 	PrintLnDebugBuffer(message, maxLength);
+	
+	if(message[0] == 0x00)
+		Throw(NO_ERROR);
 	
 	HAL_UART_Transmit_IT(&huart1, message, maxLength);
 	osSignalWait(UART1MessageSentSignal, osWaitForever);

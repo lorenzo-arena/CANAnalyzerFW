@@ -9,6 +9,7 @@
 
 #include "errors.h"
 #include "commands.h"
+#include "arr_converter.h"
 #include "cexception.h"
 #include "mailformats.h"
 #include "canspy.h"
@@ -18,10 +19,10 @@
 #include "stdlib.h"
 #include "stdbool.h"
 
-uint32_t DispatchTestCommand(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength);
-uint32_t DispatchCAN1Command(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength);
-uint32_t DispatchCAN2Command(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength);
-uint32_t DispatchInfoCommand(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength);
+void DispatchTestCommand(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
+void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
+void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
+void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
 
 osThreadId can1TaskHandle = NULL;
 osThreadId can2TaskHandle = NULL;
@@ -55,19 +56,19 @@ void StartDispatcherTask(void const * argument)
 			switch(commandData->group)
 			{
 				case GRP_TEST:
-					commandResponse->response = DispatchTestCommand(commandData->code, commandResponse->responseBuff, &(commandResponse->responseBuffLength));
+					DispatchTestCommand(commandData->code, commandData, commandResponse);
 					break;
 					
 				case GRP_INFO:
-					commandResponse->response = DispatchInfoCommand(commandData->code, commandResponse->responseBuff, &(commandResponse->responseBuffLength));
+					DispatchInfoCommand(commandData->code, commandData, commandResponse);
 					break;
 				
 				case GRP_CAN_LINE1:
-					commandResponse->response = DispatchCAN1Command(commandData->code, commandResponse->responseBuff, &(commandResponse->responseBuffLength));
+					DispatchCAN1Command(commandData->code, commandData, commandResponse);
 					break;
 				
 				case GRP_CAN_LINE2:
-					commandResponse->response = DispatchCAN2Command(commandData->code, commandResponse->responseBuff, &(commandResponse->responseBuffLength));
+					DispatchCAN2Command(commandData->code, commandData, commandResponse);
 					break;
 					
 				default:
@@ -89,7 +90,7 @@ void StartDispatcherTask(void const * argument)
 	}
 }
 
-uint32_t DispatchTestCommand(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength)
+void DispatchTestCommand(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData)
 {
 	if(command == CMD_TEST)
 	{
@@ -98,33 +99,29 @@ uint32_t DispatchTestCommand(uint16_t command, uint8_t *responseBuff, uint32_t *
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);
-	
-	return 0;
 }
 
-uint32_t DispatchInfoCommand(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength)
+void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData)
 {
 	if(command == CMD_GETSERIALNUMBER)
 	{
 		PrintLnDebugMessage("GetSerialNumber");
 
 		// Preparo i dati
-		return serialNumber;
+		responseData->response = serialNumber;
 	}
 	else if(command == CMD_GETFIRMWAREVERSION)
 	{						
 		PrintLnDebugMessage("GetFirmwareVersion");
 
 		// Preparo i dati
-		return firmwareVersion;
+		responseData->response = firmwareVersion;
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);
-	
-	return 0;
 }
 
-uint32_t DispatchCAN1Command(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength)
+void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData)
 {
 	if(command == CMD_STARTCANLINE)
 	{
@@ -147,15 +144,21 @@ uint32_t DispatchCAN1Command(uint16_t command, uint8_t *responseBuff, uint32_t *
 	}
 	else if(command == CMD_SETCANPARAM)
 	{
-		// TODO : implementare
+		CANSpyParam params;
+		params.bitTiming = GetUInt32FromBuffer(commandData->dataBuff, 0);
+		params.frameFormat = GetUInt32FromBuffer(commandData->dataBuff, 4);
+		params.errorReception = GetUInt32FromBuffer(commandData->dataBuff, 8) != 0;
+		params.applyMaskAndId = GetUInt32FromBuffer(commandData->dataBuff, 12) != 0;
+		params.mask = GetUInt32FromBuffer(commandData->dataBuff, 16);
+		params.id = GetUInt32FromBuffer(commandData->dataBuff, 20);
+
+		SetCANLineParameter(1, params);
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);
-	
-	return 0;
 }
 
-uint32_t DispatchCAN2Command(uint16_t command, uint8_t *responseBuff, uint32_t *responseLength)
+void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData)
 {
 	if(command == CMD_STARTCANLINE)
 	{
@@ -178,11 +181,17 @@ uint32_t DispatchCAN2Command(uint16_t command, uint8_t *responseBuff, uint32_t *
 	}
 	else if(command == CMD_SETCANPARAM)
 	{
-		// TODO : implementare
+		CANSpyParam params;
+		params.bitTiming = GetUInt32FromBuffer(commandData->dataBuff, 0);
+		params.frameFormat = GetUInt32FromBuffer(commandData->dataBuff, 4);
+		params.errorReception = GetUInt32FromBuffer(commandData->dataBuff, 8) != 0;
+		params.applyMaskAndId = GetUInt32FromBuffer(commandData->dataBuff, 12) != 0;
+		params.mask = GetUInt32FromBuffer(commandData->dataBuff, 16);
+		params.id = GetUInt32FromBuffer(commandData->dataBuff, 20);
+
+		SetCANLineParameter(2, params);
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);
-	
-	return 0;
 }
 
