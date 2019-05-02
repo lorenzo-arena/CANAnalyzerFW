@@ -36,5 +36,15 @@ static const uint32_t FIRMWARE_ERROR = 0x0003;
 
 static const uint32_t ERROR_FROM_HANDLER = ((FIRMWARE_ERROR << 16) | 0x00000000);
 
+// CAN Line Error
+static const uint32_t CAN_LINE_ERROR = 0x0004;
+
+static const uint32_t WRONG_BAUDRATE_CAN = ((CAN_LINE_ERROR << 16) | 0x00000000);
+
+// K Line Error
+static const uint32_t K_LINE_ERROR = 0x0005;
+
+static const uint32_t WRONG_BAUDRATE_K = ((K_LINE_ERROR << 16) | 0x00000000);
+
 #endif
 

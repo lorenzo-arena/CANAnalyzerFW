@@ -29,17 +29,37 @@ void StartCANSpyTask(void const * argument)
 
 void SetCANLineParameter(int lineNumber, CANSpyParam params)
 {
-	CAN_HandleTypeDef hcan;
+	CAN_HandleTypeDef *hcan;
 	
 	if(lineNumber == 1)
-		hcan = hcan1;
+		hcan = &hcan1;
 	else if(lineNumber == 2)
-		hcan = hcan2;
+		hcan = &hcan2;
 	else
 		Throw(PARAMETERS_NOT_CORRECT);
 	
 	// TODO : creare funzioni che creano i valori dal set di parametri
 	// IMPORTANTE: per ora usare una lookup table come fa Capture?
+	
+	
+	CAN_FilterTypeDef filterDef;
+	
+	// Attenzione all'endianness
+	filterDef.FilterIdHigh = ((params.id & 0xFFFF0000) >> 16);
+	filterDef.FilterIdLow = (params.id & 0x0000FFFF);
+	filterDef.FilterMaskIdHigh = ((params.mask & 0xFFFF0000) >> 16);
+	filterDef.FilterMaskIdLow = (params.mask & 0x0000FFFF);
+	
+	filterDef.FilterMode = CAN_FILTERMODE_IDMASK;
+	filterDef.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+	filterDef.FilterScale = CAN_FILTERSCALE_32BIT;
+	
+	if(params.applyMaskAndId)
+		filterDef.FilterActivation = CAN_FILTER_ENABLE;
+	else
+		filterDef.FilterActivation = CAN_FILTER_DISABLE;
+	
+	HAL_CAN_ConfigFilter(hcan, &filterDef); 
 	
 	/*
 	hcan1.Instance = CAN1;
@@ -61,10 +81,10 @@ void SetCANLineParameter(int lineNumber, CANSpyParam params)
 	*/
 	
 	// ************************** TEMPORANEO
-	hcan.Init.Prescaler = 8;
+	hcan->Init.Prescaler = 8;
 	// ************************** TEMPORANEO
 	
-	if (HAL_CAN_Init(&hcan1) != HAL_OK)
+	if (HAL_CAN_Init(hcan) != HAL_OK)
   {
     Error_Handler();
   }	
