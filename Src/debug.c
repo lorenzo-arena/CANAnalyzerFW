@@ -19,11 +19,12 @@ void PrintDebugMessage(const char * message)
 void PrintLnDebugMessage(const char * message)
 {
 	char * toSend;
+	int len = 0;
 	toSend = malloc(strlen(message) + 3);
 	strcpy(toSend, message);
 	strcat(toSend, "\r\n");
-	
-	HAL_UART_Transmit(&huart2, (uint8_t*)toSend, strlen(toSend), HAL_MAX_DELAY);
+	len = strlen(toSend);
+	HAL_UART_Transmit(&huart2, (uint8_t*)toSend, len, HAL_MAX_DELAY);
 
 	free(toSend);
 }

@@ -46,6 +46,7 @@ void StartDispatcherTask(void const * argument)
 		
 		Try
 		{
+			
 			// Gestione comando
 			commandResponse = (mailCommandResponse *)osMailAlloc(commandResponseMailHandle, osWaitForever);
 			commandResponse->errorCode = NO_ERROR;
@@ -92,10 +93,16 @@ void StartDispatcherTask(void const * argument)
 
 void DispatchTestCommand(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData)
 {
-	if(command == CMD_TEST)
+	if(command == CMD_BLINK)
 	{
 		PrintLnDebugMessage("Test");
 		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	}
+	else if(command == CMD_SLEEP)
+	{
+		PrintLnDebugMessage("Sleeping...");
+		osDelay(5000);
+		PrintLnDebugMessage("Resumed");
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);

@@ -28,7 +28,7 @@ const int maxCommandTimeout = osWaitForever;
 
 /* Private functions */
 void InitBLE(void);
-void MessageDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBuff, uint32_t dataLength);
+void CallDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBuff, uint32_t dataLength);
 void SendCommandAndReceive(char * message);
 void SendError(uint32_t errorCode);
 void SendToModule_NOIT(char * message, int maxTimeout);
@@ -142,6 +142,7 @@ bool ReceiveInitCommand(uint32_t *nextLength)
 
 bool ReceiveCommand(uint32_t length)
 {
+	CEXCEPTION_T ex;
 	uint32_t commandLength = length;
 	uint8_t *frame = NULL;
 	uint32_t crcInitSent = 0;
@@ -149,91 +150,131 @@ bool ReceiveCommand(uint32_t length)
 	uint16_t group = 0;
 	uint16_t command = 0;
 
-	// Aggiungo i 4 byte per il marker
-	// e i 4 byte per il Crc32
-	commandLength += 8;
-	frame = malloc(commandLength);
-	if(frame == NULL)
-		Throw(MEMORY_ERROR);
-
-	PrintLnDebugMessage("Receiving Command Frame..");
-	ReceiveFromModule_IT(frame, commandLength, maxCommandTimeout);
-	
-	if(strncmp((char *)frame, FRAME_HEADER, 4) != 0)
+	Try
 	{
-		free(frame);
-		Throw(MARKER_ERROR);
-	}
+		// Aggiungo i 4 byte per il marker
+		// e i 4 byte per il Crc32
+		commandLength += 8;
+		frame = malloc(commandLength);
+		if(frame == NULL)
+			Throw(MEMORY_ERROR);
+	
+		PrintLnDebugMessage("Receiving Command Frame..");
+		ReceiveFromModule_IT(frame, commandLength, maxCommandTimeout);
+		
+		if(strncmp((char *)frame, FRAME_HEADER, 4) != 0)
+			Throw(MARKER_ERROR);
 
-	crcInitSent = GetUInt32FromBuffer(frame, commandLength - 4);
-	
-	// Controllo il CRC del frame di init, escludendo i byte del CRC
-	crcInitCalc = CRC32_Compute(frame, commandLength - 4);
-	
-	if(crcInitSent != crcInitCalc)
+		crcInitSent = GetUInt32FromBuffer(frame, commandLength - 4);
+		
+		// Controllo il CRC del frame di init, escludendo i byte del CRC
+		crcInitCalc = CRC32_Compute(frame, commandLength - 4);
+		
+		if(crcInitSent != crcInitCalc)
+			Throw(CRC_ERROR);
+
+		group = GetUInt16FromBuffer(frame, 4);
+		command = GetUInt16FromBuffer(frame, 6);
+		
+		if(commandLength <= 12)
+			CallDispatcher(group, command, NULL, 0);
+		else
+			CallDispatcher(group, command, &frame[8], commandLength - 12);
+	}
+	Catch(ex)
 	{
-		free(frame);
-		Throw(CRC_ERROR);
+		if(frame != NULL)
+			free(frame);
+		Throw(ex);
 	}
-
-	group = GetUInt16FromBuffer(frame, 4);
-	command = GetUInt16FromBuffer(frame, 6);
-	
-	if(commandLength <= 12)
-		MessageDispatcher(group, command, NULL, 0);
-	else
-		MessageDispatcher(group, command, &frame[8], commandLength - 12);
 	
 	free(frame);
 	return true;
 }
 
-void MessageDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBuff, uint32_t dataLength)
+void CallDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBuff, uint32_t dataLength)
 {
+	CEXCEPTION_T ex;
 	mailCommand *commandData = NULL;
 	mailCommandResponse *commandResponse = NULL;
 	osEvent event;
-	uint8_t responseFrame[16];
+	uint8_t *responseFrame = NULL;
 	uint32_t crcResponse = 0;
 	
-	commandData = (mailCommand *)osMailAlloc(commandMailHandle, osWaitForever);
-	
-	commandData->group = commandGroup;
-	commandData->code = commandCode;
-	commandData->dataBuff = dataBuff;
-	commandData->dataLength = dataLength;
-	
-	osMailPut(commandMailHandle, commandData);
-	
-	event = osMailGet(commandResponseMailHandle, osWaitForever);
-	commandResponse = (mailCommandResponse *)event.value.p;       // ".p" indicates that the message is a pointer
-	
-	// Gestione risposta
-	if(commandResponse->errorCode != 0)
+	Try
 	{
+		// Alloco lo spazio per la mail contenente i dati del comando
+		commandData = (mailCommand *)osMailAlloc(commandMailHandle, osWaitForever);
+		
+		// Imposto i parametri del comando ricevuto
+		commandData->group = commandGroup;
+		commandData->code = commandCode;
+		commandData->dataBuff = dataBuff;
+		commandData->dataLength = dataLength;
+		
+		// Invio i parametri al Dispatcher
+		osMailPut(commandMailHandle, commandData);
+	
+		// Mi metto in attesa di una risposta dal Dispatcher,
+		// tenendo attiva la comunicazione con la app tramite il comando CMD_WAIT
+		event = osMailGet(commandResponseMailHandle, 50);
+		while(event.status == osEventTimeout)
+		{
+			responseFrame = malloc(16);
+			strcpy((char *)responseFrame, FRAME_HEADER);
+			SetBufferFromUInt32(NO_ERROR, responseFrame, 4);
+			SetBufferFromUInt32(((uint32_t)GRP_UTILITY << 16) | CMD_WAIT, responseFrame, 8);
+			
+			// Calcolo il crc
+			crcResponse = CRC32_Compute(responseFrame, 16 - 4);
+			SetBufferFromUInt32(crcResponse, responseFrame, 16 - 4);
+			
+			// Invio la risposta affermativa
+			SendToModule_IT(responseFrame, 16);
+			free(responseFrame);
+			
+			event = osMailGet(commandResponseMailHandle, 50);
+		}
+		
+		commandResponse = (mailCommandResponse *)event.value.p;       // ".p" indicates that the message is a pointer
+		
+		// Gestione risposta
+		if(commandResponse->errorCode != 0)
+		{
+			osMailFree(commandResponseMailHandle, commandResponse);
+			Throw(commandResponse->errorCode);
+		}
+
+		if(commandResponse->responseBuff == NULL)
+		{
+			const int messageLength = 16;
+			responseFrame = malloc(messageLength);
+			strcpy((char *)responseFrame, FRAME_HEADER);
+			SetBufferFromUInt32(NO_ERROR, responseFrame, 4);
+			SetBufferFromUInt32(commandResponse->response, responseFrame, 8);
+			
+			// Calcolo il crc
+			crcResponse = CRC32_Compute(responseFrame, messageLength - 4);
+			SetBufferFromUInt32(crcResponse, responseFrame, messageLength - 4);
+			
+			// Invio la risposta affermativa
+			SendToModule_IT(responseFrame, messageLength);
+			free(responseFrame);
+		}
+		else
+		{
+			
+		}
+
 		osMailFree(commandResponseMailHandle, commandResponse);
-		Throw(commandResponse->errorCode);
 	}
-
-	if(commandResponse->responseBuff == NULL)
+	Catch(ex)
 	{
-		strcpy((char *)responseFrame, FRAME_HEADER);
-		SetBufferFromUInt32(NO_ERROR, responseFrame, 4);
-		SetBufferFromUInt32(commandResponse->response, responseFrame, 8);
+		if(responseFrame != NULL)
+			free(responseFrame);
 		
-		// Calcolo il crc
-		crcResponse = CRC32_Compute(responseFrame, sizeof(responseFrame) - 4);
-		SetBufferFromUInt32(crcResponse, responseFrame, sizeof(responseFrame) - 4);
-		
-		// Invio la risposta affermativa
-		SendToModule_IT(responseFrame, sizeof(responseFrame));
+		Throw(ex);
 	}
-	else
-	{
-		
-	}
-
-	osMailFree(commandResponseMailHandle, commandResponse);
 }
 
 void SendCommandAndReceive(char * message)
@@ -283,7 +324,7 @@ void SendToModule_IT(uint8_t *message, uint32_t maxLength)
 	PrintDebugMessage("Sending: ");
 	PrintLnDebugBuffer(message, maxLength);
 	
-	if(message[0] == 0x00)
+	if(message[0] == 0x00 || message[0] == 0xFF)
 		Throw(NO_ERROR);
 	
 	HAL_UART_Transmit_IT(&huart1, message, maxLength);
