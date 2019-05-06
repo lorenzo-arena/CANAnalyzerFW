@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */     
 #include "ble.h"
 #include "dispatcher.h"
+#include "canspy.h"
 #include "mailformats.h"
 /* USER CODE END Includes */
 
@@ -50,6 +51,7 @@
 /* USER CODE BEGIN Variables */
 osThreadId bleTaskHandle;
 osThreadId dispatcherTaskHandle;
+osThreadId canLine1TaskHandle;
 
 osMailQId commandMailHandle;
 osMailQId commandResponseMailHandle;
@@ -72,7 +74,7 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-       
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -109,6 +111,9 @@ void MX_FREERTOS_Init(void) {
 	
 	osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 128);
   dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
+	
+	osThreadDef(canLine1Task, StartCANSpyTask, osPriorityNormal, 0, 128);
+  canLine1TaskHandle = osThreadCreate(osThread(canLine1Task), (void *)1);
   /* USER CODE END RTOS_THREADS */
 
 }

@@ -230,7 +230,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 /* USER CODE BEGIN 1 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart->Instance==USART1)
+	if(huart->Instance == USART1)
 	{
 		huart1.RxState = HAL_UART_STATE_READY;
 		osSignalSet(bleTaskHandle, UART1MessageReceivedSignal);
@@ -239,7 +239,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart->Instance==USART1)
+	if(huart->Instance == USART1)
 	{
 		huart1.RxState = HAL_UART_STATE_READY;
 		osSignalSet(bleTaskHandle, UART1MessageSentSignal);

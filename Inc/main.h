@@ -45,6 +45,7 @@ extern "C" {
 /* USER CODE BEGIN EC */
 extern osThreadId bleTaskHandle;
 extern osThreadId dispatcherTaskHandle;
+extern osThreadId canLine1TaskHandle;
 
 extern osMailQId commandMailHandle;
 extern osMailQId commandResponseMailHandle;

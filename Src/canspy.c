@@ -20,10 +20,32 @@
   */
 void StartCANSpyTask(void const * argument)
 {
-	int CANLine = *(int *)argument;
+	int CANLine = (int)argument;
 
+	if(CANLine == 1)
+	{
+		/*
+		// TODO : testare trasmissione!!!
+		CAN_TxHeaderTypeDef TxHeader;
+		TxHeader.StdId = 0x321;
+		TxHeader.ExtId = 0x01;
+		TxHeader.RTR = CAN_RTR_DATA;
+		TxHeader.IDE = CAN_ID_STD;
+		TxHeader.DLC = 2;
+		uint8_t txData[8] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08} ;
+		HAL_StatusTypeDef status = HAL_CAN_AddTxMessage(&hcan1, &TxHeader, txData, (uint32_t *)CAN_TX_MAILBOX0);		
+		*/
+		HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING
+		| CAN_IT_RX_FIFO0_FULL
+		| CAN_IT_RX_FIFO0_OVERRUN     
+		| CAN_IT_RX_FIFO1_MSG_PENDING 
+		| CAN_IT_RX_FIFO1_FULL        
+		| CAN_IT_RX_FIFO1_OVERRUN     );
+	}
+	
 	for(;;)
 	{
+		
 	}
 }
 
