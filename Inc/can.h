@@ -34,7 +34,7 @@ extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 
 /* USER CODE BEGIN Private defines */
-#define CAN1MessageReceivedSignal 0x0001
+#define CANMessageReceivedSignal 0x0001
 /* USER CODE END Private defines */
 
 void MX_CAN1_Init(void);

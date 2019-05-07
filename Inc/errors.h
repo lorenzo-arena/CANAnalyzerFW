@@ -35,6 +35,7 @@ static const uint32_t PARAMETERS_NOT_CORRECT = ((COMMAND_ERROR << 16) | 0x000000
 static const uint32_t FIRMWARE_ERROR = 0x0003;
 
 static const uint32_t ERROR_FROM_HANDLER = ((FIRMWARE_ERROR << 16) | 0x00000000);
+static const uint32_t FUNCTION_BAD_CALL = ((FIRMWARE_ERROR << 16) | 0x00000001);
 
 // CAN Line Error
 static const uint32_t CAN_LINE_ERROR = 0x0004;

@@ -215,16 +215,20 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	if(hcan->Instance == CAN1)
-	{
-		osSignalSet(canLine1TaskHandle, CAN1MessageReceivedSignal);
+	{		
+		CAN_RxHeaderTypeDef   RxHeader;
+		uint8_t               RxData[8];
+		
+		osSignalSet(canLine1TaskHandle, CANMessageReceivedSignal);
+		HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, RxData);
 	}
-}
-
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-	if(hcan->Instance == CAN1)
-	{
-		osSignalSet(canLine1TaskHandle, CAN1MessageReceivedSignal);
+	else if(hcan->Instance == CAN2)
+	{		
+		CAN_RxHeaderTypeDef   RxHeader;
+		uint8_t               RxData[8];
+		
+		osSignalSet(canLine1TaskHandle, CANMessageReceivedSignal);
+		HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData);
 	}
 }
 /* USER CODE END 1 */

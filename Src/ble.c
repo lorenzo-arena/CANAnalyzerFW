@@ -306,7 +306,11 @@ void ReceiveFromModule_IT(uint8_t *message, uint32_t maxLength, uint32_t timeout
 void SendToModule_NOIT(char * message, int maxTimeout)
 {
 	char * toSend;
+	
 	toSend = malloc(strlen(message) + 3);
+	if(toSend == NULL)
+		Throw(MEMORY_ERROR);
+	
 	strcpy(toSend, message);
 	strcat(toSend, "\r\n");
 	

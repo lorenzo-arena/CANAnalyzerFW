@@ -7,6 +7,8 @@
 	
 #include "debug.h"
 #include "usart.h"
+#include "cexception.h"
+#include "errors.h"
 #include "string.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -19,7 +21,11 @@ void PrintDebugMessage(const char * message)
 void PrintLnDebugMessage(const char * message)
 {
 	char * toSend;
+	
 	toSend = malloc(strlen(message) + 3);
+	if(toSend == NULL)
+		Throw(MEMORY_ERROR);
+	
 	strcpy(toSend, message);
 	strcat(toSend, "\r\n");
 	
@@ -32,7 +38,11 @@ void PrintLnDebugBuffer(uint8_t * buff, uint32_t buffLength)
 {
 	char * toSend;
 	int charIndex = 0;
+	
 	toSend = malloc((buffLength * 2));
+	if(toSend == NULL)
+		Throw(MEMORY_ERROR);
+	
 	memset(toSend, 0x00, buffLength * 2);
 	
 	for(charIndex = 0; charIndex < buffLength; charIndex ++)
