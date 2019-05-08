@@ -119,6 +119,11 @@
       <TargetDriverDllRegistry>
         <SetRegEntry>
           <Number>0</Number>
+          <Key>PWSTATINFO</Key>
+          <Name>200,50,700</Name>
+        </SetRegEntry>
+        <SetRegEntry>
+          <Number>0</Number>
           <Key>ARMRTXEVENTFLAGS</Key>
           <Name>-L70 -Z21 -C0 -M0 -T1</Name>
         </SetRegEntry>
@@ -154,7 +159,7 @@
           <Type>0</Type>
           <LineNumber>217</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134221702</Address>
+          <Address>134221898</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -171,6 +176,11 @@
           <count>0</count>
           <WinNumber>1</WinNumber>
           <ItemText>params,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>1</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>errorCode</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>
@@ -225,7 +235,6 @@
       <pMultCmdsp></pMultCmdsp>
       <DebugDescription>
         <Enable>1</Enable>
-        <EnableFlashSeq>0</EnableFlashSeq>
         <EnableLog>0</EnableLog>
         <Protocol>2</Protocol>
         <DbgClock>10000000</DbgClock>

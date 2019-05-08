@@ -35,6 +35,11 @@ extern CAN_HandleTypeDef hcan2;
 
 /* USER CODE BEGIN Private defines */
 #define CANMessageReceivedSignal 0x0001
+
+
+#define NORMAL_FRAME_FORMAT 11
+#define EXTENDED_FRAME_FORMAT 29
+
 /* USER CODE END Private defines */
 
 void MX_CAN1_Init(void);

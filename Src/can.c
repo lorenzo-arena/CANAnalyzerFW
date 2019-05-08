@@ -231,6 +231,18 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData);
 	}
 }
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
+{
+	uint8_t errorCode;
+	errorCode = HAL_CAN_GetError(hcan);
+	HAL_CAN_ResetError(hcan);
+	
+	if(hcan->Instance == CAN1)
+		osSignalSet(canLine1TaskHandle, CANMessageReceivedSignal);
+	else if(hcan->Instance == CAN2)
+		osSignalSet(canLine1TaskHandle, CANMessageReceivedSignal);
+}
 /* USER CODE END 1 */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
