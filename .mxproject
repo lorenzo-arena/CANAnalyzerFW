@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=H:/SviluppoGit/CANAnalyzerFW/Inc
+HeaderPath=C:/Users/laren/Desktop/CANAnalyzerFW/Inc
 HeaderFiles=FreeRTOSConfig.h;stm32f4xx_it.h;stm32f4xx_hal_conf.h;main.h;gpio.h;can.h;crc.h;i2c.h;spi.h;usart.h;
-SourcePath=H:/SviluppoGit/CANAnalyzerFW/Src
+SourcePath=C:/Users/laren/Desktop/CANAnalyzerFW/Src
 SourceFiles=freertos.c;stm32f4xx_it.c;stm32f4xx_hal_msp.c;stm32f4xx_hal_timebase_tim.c;main.c;gpio.c;can.c;crc.c;i2c.c;spi.c;usart.c;
 AdvancedFolderStructure=true
 HeaderFileListSize=4

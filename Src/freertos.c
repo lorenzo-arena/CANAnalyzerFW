@@ -51,7 +51,9 @@
 osThreadId bleTaskHandle;
 osThreadId dispatcherTaskHandle;
 
+osMailQDef(commandMailHandle, 1, mailCommand);
 osMailQId commandMailHandle;
+osMailQDef(commandResponseMailHandle, 1, mailCommandResponse);
 osMailQId commandResponseMailHandle;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
@@ -88,13 +90,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-	osMailQDef(commandMail, 1, mailCommand);
-	
-	commandMailHandle = osMailCreate(osMailQ(commandMail), NULL);
-	
-	osMailQDef(commandResponseMail, 1, mailCommandResponse);
-	
-	commandResponseMailHandle = osMailCreate(osMailQ(commandResponseMail), NULL);
+
+	commandMailHandle = osMailCreate(osMailQ(commandMailHandle), NULL);
+	commandResponseMailHandle = osMailCreate(osMailQ(commandResponseMailHandle), NULL);
 
   /* USER CODE END RTOS_QUEUES */
 
@@ -104,11 +102,13 @@ void MX_FREERTOS_Init(void) {
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 128);
+	
+		osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 512);
+  dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
+	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 512);
   bleTaskHandle = osThreadCreate(osThread(bleTask), NULL);
 	
-	osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 128);
-  dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
+
   /* USER CODE END RTOS_THREADS */
 
 }
