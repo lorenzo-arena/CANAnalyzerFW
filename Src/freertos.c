@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */     
 #include "ble.h"
 #include "dispatcher.h"
+#include "canspy.h"
 #include "mailformats.h"
 /* USER CODE END Includes */
 
@@ -50,6 +51,7 @@
 /* USER CODE BEGIN Variables */
 osThreadId bleTaskHandle;
 osThreadId dispatcherTaskHandle;
+osThreadId canLine1TaskHandle;
 
 osMailQDef(commandMailHandle, 1, mailCommand);
 osMailQId commandMailHandle;
@@ -67,6 +69,18 @@ void StartDefaultTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
+/* Hook prototypes */
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName);
+
+/* USER CODE BEGIN 4 */
+__weak void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
+{
+   /* Run time stack overflow checking is performed if
+   configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
+   called if a stack overflow is detected. */
+}
+/* USER CODE END 4 */
+
 /**
   * @brief  FreeRTOS initialization
   * @param  None
@@ -74,7 +88,7 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-       
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -102,13 +116,14 @@ void MX_FREERTOS_Init(void) {
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-	
-		osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 512);
-  dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
-	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 512);
-  bleTaskHandle = osThreadCreate(osThread(bleTask), NULL);
-	
+	osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 512);
+	dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
 
+	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 512);
+	bleTaskHandle = osThreadCreate(osThread(bleTask), NULL);
+
+	osThreadDef(canLine1Task, StartCANSpyTask, osPriorityNormal, 0, 512);
+	canLine1TaskHandle = osThreadCreate(osThread(canLine1Task), (void *)1);
   /* USER CODE END RTOS_THREADS */
 
 }

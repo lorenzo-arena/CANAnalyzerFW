@@ -31,6 +31,8 @@ typedef struct
 
 void StartCANSpyTask(void const * argument);
 void SetCANLineParameter(int lineNumber, CANSpyParam params);
+void StartCANLine(int lineNumber);
+void StopCANLine(int lineNumber);
 
 #endif /*__CANSPY_H */
 

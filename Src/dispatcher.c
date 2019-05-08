@@ -132,22 +132,11 @@ void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommand
 {
 	if(command == CMD_STARTCANLINE)
 	{
-		int lineCode = 1;
-	
-		// Controllo se il thread e' gia' stato avviato
-		if(can1TaskHandle != NULL)
-			osThreadTerminate(can1TaskHandle);
-		
-		// Avvio un nuovo thread CAN		
-		osThreadDef(can1Task, StartCANSpyTask, osPriorityNormal, 0, 128);	
-		can1TaskHandle = osThreadCreate(osThread(can1Task), &lineCode);
+		StartCANLine(1);
 	}
 	else if(command == CMD_STOPCANLINE)
 	{		
-		osStatus state = osThreadTerminate(can1TaskHandle);
-		
-		if(state != osOK)
-			Throw(COMMAND_NOT_EXECUTED_ERROR);
+		StopCANLine(1);
 	}
 	else if(command == CMD_SETCANPARAM)
 	{
@@ -169,22 +158,11 @@ void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommand
 {
 	if(command == CMD_STARTCANLINE)
 	{
-		int lineCode = 1;
-	
-		// Controllo se il thread e' gia' stato avviato
-		if(can2TaskHandle != NULL)
-			osThreadTerminate(can2TaskHandle);
-		
-		// Avvio un nuovo thread CAN		
-		osThreadDef(can2Task, StartCANSpyTask, osPriorityNormal, 0, 128);	
-		can2TaskHandle = osThreadCreate(osThread(can2Task), &lineCode);
+		StartCANLine(2);
 	}
 	else if(command == CMD_STOPCANLINE)
-	{
-		osStatus state = osThreadTerminate(can2TaskHandle);
-		
-		if(state != osOK)
-			Throw(COMMAND_NOT_EXECUTED_ERROR);
+	{		
+		StopCANLine(2);
 	}
 	else if(command == CMD_SETCANPARAM)
 	{
