@@ -30,6 +30,7 @@
 #include "dispatcher.h"
 #include "canspy.h"
 #include "mailformats.h"
+#include "fatfs.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,6 +68,7 @@ osThreadId defaultTaskHandle;
 
 void StartDefaultTask(void const * argument);
 
+extern void MX_FATFS_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* Hook prototypes */
@@ -134,11 +136,31 @@ void MX_FREERTOS_Init(void) {
   * @param  argument: Not used 
   * @retval None
   */
+FATFS myFatFS;
+FIL myFile;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
+  /* init code for FATFS */
+  MX_FATFS_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
+	if(f_mount(&myFatFS, "", 1) == FR_OK)
+	{
+		char myFileName[] = "Test1.txt";
+		if(f_open(&myFile, myFileName, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK)
+		{
+			char myData[] = "Hello hello !";
+			uint32_t myBytes;
+			if(f_write(&myFile, myData, sizeof(myData) - 1, &myBytes) == FR_OK)
+			{
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+			}
+
+			f_close(&myFile);
+		}
+	}
+
   /* Infinite loop */
   for(;;)
   {
