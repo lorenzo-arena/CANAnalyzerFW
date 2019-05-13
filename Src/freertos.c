@@ -147,25 +147,36 @@ void StartDefaultTask(void const * argument)
   /* USER CODE BEGIN StartDefaultTask */
 	if(f_mount(&myFatFS, "", 1) == FR_OK)
 	{
-		char myFileName[] = "Test1.txt";
-		if(f_open(&myFile, myFileName, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK)
-		{
-			char myData[] = "Hello hello !";
-			uint32_t myBytes;
-			if(f_write(&myFile, myData, sizeof(myData) - 1, &myBytes) == FR_OK)
-			{
-				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-			}
-
-			f_close(&myFile);
-		}
+		// TODO : aggiungere gestione errore
 	}
+	
+	/*
+	
+	char myFileName[] = "Test1.txt";
+		
+	f_mkdir("\\CAN1");
+	
+	f_mkdir("\\CAN2");
+	
+	f_mkdir("\\K");
+	
+	
+	if(f_open(&myFile, myFileName, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK)
+	{
+		char myData[] = "Hello hello !";
+		uint32_t myBytes;
+		if(f_write(&myFile, myData, sizeof(myData) - 1, &myBytes) == FR_OK)
+		{
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+		}
+
+		f_close(&myFile);
+	}
+	
+	*/
 
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  for(;;) { }
   /* USER CODE END StartDefaultTask */
 }
 

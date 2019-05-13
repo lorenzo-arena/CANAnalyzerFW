@@ -18,6 +18,7 @@
 #include "string.h"
 #include "stdlib.h"
 #include "stdbool.h"
+#include "fatfs.h"
 
 void DispatchTestCommand(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
 void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
@@ -95,11 +96,12 @@ void DispatchTestCommand(uint16_t command, mailCommand *commandData, mailCommand
 {
 	if(command == CMD_BLINK)
 	{
-		PrintLnDebugMessage("Test");
+		PrintLnDebugMessage(">> Command: Blink");
 		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 	}
 	else if(command == CMD_SLEEP)
 	{
+		PrintLnDebugMessage(">> Command: Sleep");
 		PrintLnDebugMessage("Sleeping...");
 		osDelay(5000);
 		PrintLnDebugMessage("Resumed");
@@ -112,17 +114,94 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 {
 	if(command == CMD_GETSERIALNUMBER)
 	{
-		PrintLnDebugMessage("GetSerialNumber");
+		PrintLnDebugMessage(">> Command: GetSerialNumber");
 
 		// Preparo i dati
 		responseData->response = serialNumber;
 	}
 	else if(command == CMD_GETFIRMWAREVERSION)
 	{						
-		PrintLnDebugMessage("GetFirmwareVersion");
+		PrintLnDebugMessage(">> Command: GetFirmwareVersion");
 
 		// Preparo i dati
 		responseData->response = firmwareVersion;
+	}
+	else if(command == CMD_GETCAN1FILESNUM ||
+		      command == CMD_GETCAN2FILESNUM ||
+					command == CMD_GETKFILESNUM)
+	{
+		FILINFO fileInfo;
+		DIR dirInfo;
+		int filesNum = 0;
+		
+		if(command == CMD_GETCAN1FILESNUM)
+		{
+			PrintLnDebugMessage(">> Command: Get CAN1 files number");
+			f_opendir(&dirInfo, "\\CAN1");
+		}
+		else if(command == CMD_GETCAN2FILESNUM)
+		{
+			PrintLnDebugMessage(">> Command: Get CAN2 files number");
+			f_opendir(&dirInfo, "\\CAN2");
+		}
+		else if(command == CMD_GETKFILESNUM)
+		{
+			PrintLnDebugMessage(">> Command: Get K files number");
+			f_opendir(&dirInfo, "\\K");
+		}
+		
+		f_readdir(&dirInfo, &fileInfo);
+		while(strcmp(fileInfo.fname, "") != 0)
+		{
+			filesNum++;
+			f_readdir(&dirInfo, &fileInfo);
+		}
+		f_closedir(&dirInfo);
+
+		responseData->response = filesNum;
+	}
+	else if(command == CMD_GETCAN1FILENAME ||
+		      command == CMD_GETCAN2FILENAME ||
+					command == CMD_GETKFILENAME)
+	{
+		FILINFO fileInfo;
+		DIR dirInfo;
+		int fileIndex = 0;
+		int selectedFileIndex = GetUInt32FromBuffer(commandData->dataBuff, 0);
+		
+		if(command == CMD_GETCAN1FILENAME)
+		{
+			PrintLnDebugMessage(">> Command: Get CAN1 file name");
+			f_opendir(&dirInfo, "\\CAN1");
+		}
+		else if(command == CMD_GETCAN2FILENAME)
+		{
+			PrintLnDebugMessage(">> Command: Get CAN2 file name");
+			f_opendir(&dirInfo, "\\CAN2");
+		}
+		else if(command == CMD_GETKFILENAME)
+		{
+			PrintLnDebugMessage(">> Command: Get K file name");
+			f_opendir(&dirInfo, "\\K");
+		}
+		
+		f_readdir(&dirInfo, &fileInfo);
+		while(fileIndex != selectedFileIndex && strcmp(fileInfo.fname, "") != 0)
+		{
+			fileIndex++;
+			f_readdir(&dirInfo, &fileInfo);
+		}
+		f_closedir(&dirInfo);
+		
+		if(fileIndex == selectedFileIndex && strcmp(fileInfo.fname, "") != 0)
+		{
+			responseData->response = 0x00000000;
+			responseData->responseBuff = malloc(strlen(fileInfo.fname));
+			responseData->responseBuffLength = strlen(fileInfo.fname);
+			memcpy(responseData->responseBuff, fileInfo.fname, strlen(fileInfo.fname));
+		}
+		else
+			Throw(PARAMETERS_NOT_CORRECT);
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);
@@ -132,10 +211,12 @@ void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommand
 {
 	if(command == CMD_STARTCANLINE)
 	{
+		PrintLnDebugMessage(">> Command: Start CAN1 Line");
 		StartCANLine(1);
 	}
 	else if(command == CMD_STOPCANLINE)
-	{		
+	{	
+		PrintLnDebugMessage(">> Command: Stop CAN1 Line");		
 		StopCANLine(1);
 	}
 	else if(command == CMD_SETCANPARAM)
@@ -148,6 +229,7 @@ void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommand
 		params.mask = GetUInt32FromBuffer(commandData->dataBuff, 16);
 		params.id = GetUInt32FromBuffer(commandData->dataBuff, 20);
 
+		PrintLnDebugMessage(">> Command: Set CAN1 parameters");
 		SetCANLineParameter(1, params);
 	}
 	else
@@ -158,10 +240,12 @@ void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommand
 {
 	if(command == CMD_STARTCANLINE)
 	{
+		PrintLnDebugMessage(">> Command: Start CAN2 Line");
 		StartCANLine(2);
 	}
 	else if(command == CMD_STOPCANLINE)
-	{		
+	{
+		PrintLnDebugMessage(">> Command: Stop CAN1 Line");
 		StopCANLine(2);
 	}
 	else if(command == CMD_SETCANPARAM)
@@ -174,6 +258,7 @@ void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommand
 		params.mask = GetUInt32FromBuffer(commandData->dataBuff, 16);
 		params.id = GetUInt32FromBuffer(commandData->dataBuff, 20);
 
+		PrintLnDebugMessage(">> Command: Set CAN2 parameters");
 		SetCANLineParameter(2, params);
 	}
 	else

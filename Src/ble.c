@@ -140,6 +140,54 @@ bool ReceiveInitCommand(uint32_t *nextLength)
 	return true;
 }
 
+bool ReceivePacketOKCommand()
+{
+	CEXCEPTION_T ex;
+	uint32_t commandLength = 0;
+	uint8_t *frame = NULL;
+	uint32_t crcInitSent = 0;
+	uint32_t crcInitCalc = 0;
+	uint32_t packetCommand = 0;
+
+	Try
+	{
+		// Aggiungo i 4 byte per il marker
+		// e i 4 byte per il Crc32
+		commandLength = 12;
+		frame = malloc(commandLength);
+		if(frame == NULL)
+			Throw(MEMORY_ERROR);
+	
+		PrintLnDebugMessage("Receiving PacketOK Frame..");
+		ReceiveFromModule_IT(frame, commandLength, maxCommandTimeout);
+		
+		if(strncmp((char *)frame, FRAME_HEADER, 4) != 0)
+			Throw(MARKER_ERROR);
+
+		crcInitSent = GetUInt32FromBuffer(frame, commandLength - 4);
+		
+		// Controllo il CRC del frame di init, escludendo i byte del CRC
+		crcInitCalc = CRC32_Compute(frame, commandLength - 4);
+		
+		if(crcInitSent != crcInitCalc)
+			Throw(CRC_ERROR);
+
+		packetCommand = GetUInt32FromBuffer(frame, 4);
+		
+		if(packetCommand != 0x3F3F3F3F)
+			Throw(COMMAND_NOT_VALID_ERROR);			
+	}
+	Catch(ex)
+	{
+		if(frame != NULL)
+			free(frame);
+		Throw(ex);
+	}
+	
+	free(frame);
+	return true;
+}
+
 bool ReceiveCommand(uint32_t length)
 {
 	CEXCEPTION_T ex;
@@ -263,7 +311,68 @@ void CallDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBu
 		}
 		else
 		{
+			const int messageLength = 16 + commandResponse->responseBuffLength;
+			responseFrame = malloc(messageLength);
+			strcpy((char *)responseFrame, FRAME_HEADER);
+			SetBufferFromUInt32(NO_ERROR, responseFrame, 4);
+			SetBufferFromUInt32(commandResponse->response, responseFrame, 8);
 			
+			memcpy(responseFrame + 12, commandResponse->responseBuff, commandResponse->responseBuffLength);
+			free(commandResponse->responseBuff);
+			
+			if(messageLength <= 20)
+			{
+				// Calcolo il crc
+				crcResponse = CRC32_Compute(responseFrame, messageLength - 4);
+				SetBufferFromUInt32(crcResponse, responseFrame, messageLength - 4);
+				
+				// Invio la risposta affermativa
+				SendToModule_IT(responseFrame, messageLength);
+				free(responseFrame);
+			}
+			else
+			{
+				// Invio la risposta a pacchetti di 20 byte
+				int packetsIndex = 0;
+				int packetsNum = ((messageLength % 20) == 0) ? (messageLength / 20) : ((messageLength / 20) + 1);
+				const int packetCommandLength = 20;
+				uint8_t *packetCommandFrame = malloc(packetCommandLength);
+				
+				PrintLnDebugMessage("*** Start packets transmission ***");
+				
+				strcpy((char *)packetCommandFrame, FRAME_HEADER);
+				SetBufferFromUInt32(NO_ERROR, packetCommandFrame, 4);
+				SetBufferFromUInt32(0x3F3F3F3F, packetCommandFrame, 8);
+				
+				// Imposto la size che il dispositivo dovra' ricevere
+				SetBufferFromUInt32(messageLength, packetCommandFrame, 12);
+				
+				// Calcolo il crc
+				crcResponse = CRC32_Compute(packetCommandFrame, packetCommandLength - 4);
+				SetBufferFromUInt32(crcResponse, packetCommandFrame, packetCommandLength - 4);
+				
+				// Invio la risposta per l'invio dei pacchetti
+				SendToModule_IT(packetCommandFrame, packetCommandLength);
+				free(packetCommandFrame);
+				
+				ReceivePacketOKCommand();
+				
+				for(packetsIndex = 0; packetsIndex < packetsNum; packetsIndex++)
+				{
+					uint32_t packetSize = (packetsIndex < packetsNum - 1) ? 20 : (messageLength % 20);
+					uint8_t *packetFrame = malloc(packetSize);
+					
+					memcpy(packetFrame, responseFrame + 20 * packetsIndex, packetSize);
+					
+					// Invio il pacchetto corrente
+					SendToModule_IT(packetFrame, packetSize);
+					free(packetFrame);
+					
+					ReceivePacketOKCommand();
+				}
+				
+				free(responseFrame);
+			}
 		}
 
 		osMailFree(commandResponseMailHandle, commandResponse);
