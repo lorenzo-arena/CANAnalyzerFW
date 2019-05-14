@@ -253,9 +253,13 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 			responseData->responseBuffLength = fileSize;
 			
 			f_read(&file, responseData->responseBuff, fileSize, &sizeRead);
+			free(filePath);
 		}
 		else
+		{
+			free(filePath);
 			Throw(PARAMETERS_NOT_CORRECT);
+		}
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);

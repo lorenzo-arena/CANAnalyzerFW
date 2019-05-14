@@ -328,7 +328,6 @@ void CallDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBu
 				
 				// Invio la risposta affermativa
 				SendToModule_IT(responseFrame, messageLength);
-				free(responseFrame);
 			}
 			else
 			{
@@ -370,9 +369,9 @@ void CallDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBu
 					
 					ReceivePacketOKCommand();
 				}
-				
-				free(responseFrame);
 			}
+			
+			free(responseFrame);
 		}
 
 		osMailFree(commandResponseMailHandle, commandResponse);
