@@ -18,6 +18,7 @@
 #include "string.h"
 #include "stdlib.h"
 #include "stdbool.h"
+#include "stdio.h"
 #include "fatfs.h"
 
 void DispatchTestCommand(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
@@ -132,30 +133,32 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 	{
 		FILINFO fileInfo;
 		DIR dirInfo;
+		FRESULT searchResult;
 		int filesNum = 0;
 		
 		if(command == CMD_GETCAN1FILESNUM)
 		{
 			PrintLnDebugMessage(">> Command: Get CAN1 files number");
-			f_opendir(&dirInfo, "\\CAN1");
+			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN1", "CAN1*.*");
 		}
 		else if(command == CMD_GETCAN2FILESNUM)
 		{
 			PrintLnDebugMessage(">> Command: Get CAN2 files number");
-			f_opendir(&dirInfo, "\\CAN2");
+			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN2", "CAN2*.*");
 		}
 		else if(command == CMD_GETKFILESNUM)
 		{
 			PrintLnDebugMessage(">> Command: Get K files number");
-			f_opendir(&dirInfo, "\\K");
+			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\K", "K*.*");
 		}
 		
-		f_readdir(&dirInfo, &fileInfo);
-		while(strcmp(fileInfo.fname, "") != 0)
+		// Scorro tutti i file per calcolare quanti sono
+		while(searchResult == FR_OK && fileInfo.fname[0])
 		{
 			filesNum++;
-			f_readdir(&dirInfo, &fileInfo);
+			searchResult = f_findnext(&dirInfo, &fileInfo);
 		}
+		
 		f_closedir(&dirInfo);
 
 		responseData->response = filesNum;
@@ -166,31 +169,33 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 	{
 		FILINFO fileInfo;
 		DIR dirInfo;
+		FRESULT searchResult;
 		int fileIndex = 0;
 		int selectedFileIndex = GetUInt32FromBuffer(commandData->dataBuff, 0);
 		
 		if(command == CMD_GETCAN1FILENAME)
 		{
 			PrintLnDebugMessage(">> Command: Get CAN1 file name");
-			f_opendir(&dirInfo, "\\CAN1");
+			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN1", "CAN1*.*");
 		}
 		else if(command == CMD_GETCAN2FILENAME)
 		{
 			PrintLnDebugMessage(">> Command: Get CAN2 file name");
-			f_opendir(&dirInfo, "\\CAN2");
+			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN2", "CAN2*.*");
 		}
 		else if(command == CMD_GETKFILENAME)
 		{
 			PrintLnDebugMessage(">> Command: Get K file name");
-			f_opendir(&dirInfo, "\\K");
+			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\K", "K*.*");
 		}
 		
-		f_readdir(&dirInfo, &fileInfo);
-		while(fileIndex != selectedFileIndex && strcmp(fileInfo.fname, "") != 0)
+		// Scorro tutti i file fino a trovare quello con l'indice corretto
+		while(fileIndex != selectedFileIndex && searchResult == FR_OK && fileInfo.fname[0])
 		{
 			fileIndex++;
-			f_readdir(&dirInfo, &fileInfo);
+			searchResult = f_findnext(&dirInfo, &fileInfo);
 		}
+		
 		f_closedir(&dirInfo);
 		
 		if(fileIndex == selectedFileIndex && strcmp(fileInfo.fname, "") != 0)
@@ -199,6 +204,55 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 			responseData->responseBuff = malloc(strlen(fileInfo.fname));
 			responseData->responseBuffLength = strlen(fileInfo.fname);
 			memcpy(responseData->responseBuff, fileInfo.fname, strlen(fileInfo.fname));
+		}
+		else
+			Throw(PARAMETERS_NOT_CORRECT);
+	}
+	else if(command == CMD_GETCAN1FILE ||
+					command == CMD_GETCAN2FILE ||
+					command == CMD_GETKFILE)
+	{
+		FIL file;
+		DIR dirInfo;
+		FRESULT searchResult;
+		char *filePath;
+		int fileIndex = 0;
+		int selectedFileIndex = GetUInt32FromBuffer(commandData->dataBuff, 0);
+		
+		
+		// Creo la path per il file
+		if(command == CMD_GETCAN1FILE)
+		{
+			PrintLnDebugMessage(">> Command: Download CAN1 file");
+			filePath = malloc(6 + strlen((char *)commandData->dataBuff));
+			sprintf(filePath, "\\CAN1\\");
+			strcat(filePath, (char *)commandData->dataBuff);
+		}
+		else if(command == CMD_GETCAN2FILE)
+		{
+			PrintLnDebugMessage(">> Command: Download CAN2 file");
+			filePath = malloc(6 + strlen((char *)commandData->dataBuff));
+			sprintf(filePath, "\\CAN2\\");
+			strcat(filePath, (char *)commandData->dataBuff);
+		}
+		else if(command == CMD_GETKFILE)
+		{
+			PrintLnDebugMessage(">> Command: Download K file");
+			filePath = malloc(3 + strlen((char *)commandData->dataBuff));
+			sprintf(filePath, "\\K\\");
+			strcat(filePath, (char *)commandData->dataBuff);
+		}
+		
+		// Apro il file
+		if(f_open(&file, filePath, FA_READ) == FR_OK)
+		{
+			uint32_t sizeRead = 0;
+			FSIZE_t fileSize = f_size(&file);
+			responseData->response = 0x00000000;
+			responseData->responseBuff = malloc(fileSize);
+			responseData->responseBuffLength = fileSize;
+			
+			f_read(&file, responseData->responseBuff, fileSize, &sizeRead);
 		}
 		else
 			Throw(PARAMETERS_NOT_CORRECT);

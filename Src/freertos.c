@@ -121,10 +121,10 @@ void MX_FREERTOS_Init(void) {
 	osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 512);
 	dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
 
-	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 512);
+	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 1024);
 	bleTaskHandle = osThreadCreate(osThread(bleTask), NULL);
 
-	osThreadDef(canLine1Task, StartCANSpyTask, osPriorityNormal, 0, 512);
+	osThreadDef(canLine1Task, StartCANSpyTask, osPriorityNormal, 0, 128);
 	canLine1TaskHandle = osThreadCreate(osThread(canLine1Task), (void *)1);
   /* USER CODE END RTOS_THREADS */
 
@@ -145,12 +145,27 @@ void StartDefaultTask(void const * argument)
   MX_FATFS_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
-	if(f_mount(&myFatFS, "", 1) == FR_OK)
+	if(f_mount(&myFatFS, "", 1) != FR_OK)
 	{
-		// TODO : aggiungere gestione errore
+		Error_Handler();
+	}
+	/*
+	FILINFO fileInfo;
+	DIR dirInfo;
+	FRESULT searchResult;
+	int fileIndex = 0;
+
+	searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN1", "CAN1*.*");
+
+	while(searchResult == FR_OK && fileInfo.fname[0])
+	{
+		fileIndex++;
+		searchResult = f_findnext(&dirInfo, &fileInfo);
 	}
 	
-	/*
+	f_closedir(&dirInfo);
+	
+	
 	
 	char myFileName[] = "Test1.txt";
 		
