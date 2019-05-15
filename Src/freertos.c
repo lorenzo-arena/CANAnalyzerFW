@@ -118,10 +118,10 @@ void MX_FREERTOS_Init(void) {
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-	osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 512);
+	osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 2048);
 	dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
 
-	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 1024);
+	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 2048);
 	bleTaskHandle = osThreadCreate(osThread(bleTask), NULL);
 
 	osThreadDef(canLine1Task, StartCANSpyTask, osPriorityNormal, 0, 128);
@@ -136,8 +136,7 @@ void MX_FREERTOS_Init(void) {
   * @param  argument: Not used 
   * @retval None
   */
-FATFS myFatFS;
-FIL myFile;
+
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -145,53 +144,11 @@ void StartDefaultTask(void const * argument)
   MX_FATFS_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
-	if(f_mount(&myFatFS, "", 1) != FR_OK)
-	{
-		Error_Handler();
-	}
-	/*
-	FILINFO fileInfo;
-	DIR dirInfo;
-	FRESULT searchResult;
-	int fileIndex = 0;
-
-	searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN1", "CAN1*.*");
-
-	while(searchResult == FR_OK && fileInfo.fname[0])
-	{
-		fileIndex++;
-		searchResult = f_findnext(&dirInfo, &fileInfo);
-	}
-	
-	f_closedir(&dirInfo);
-	
-	
-	
-	char myFileName[] = "Test1.txt";
-		
-	f_mkdir("\\CAN1");
-	
-	f_mkdir("\\CAN2");
-	
-	f_mkdir("\\K");
-	
-	
-	if(f_open(&myFile, myFileName, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK)
-	{
-		char myData[] = "Hello hello !";
-		uint32_t myBytes;
-		if(f_write(&myFile, myData, sizeof(myData) - 1, &myBytes) == FR_OK)
-		{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-		}
-
-		f_close(&myFile);
-	}
-	
-	*/
-
   /* Infinite loop */
-  for(;;) { }
+  for(;;)
+  {
+    osDelay(1);
+  }
   /* USER CODE END StartDefaultTask */
 }
 

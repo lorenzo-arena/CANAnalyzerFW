@@ -265,7 +265,7 @@ void CallDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBu
 	
 		// Mi metto in attesa di una risposta dal Dispatcher,
 		// tenendo attiva la comunicazione con la app tramite il comando CMD_WAIT
-		event = osMailGet(commandResponseMailHandle, 50);
+		event = osMailGet(commandResponseMailHandle, 20);
 		while(event.status == osEventTimeout)
 		{
 			responseFrame = malloc(16);
@@ -281,7 +281,7 @@ void CallDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBu
 			SendToModule_IT(responseFrame, 16);
 			free(responseFrame);
 			
-			event = osMailGet(commandResponseMailHandle, 50);
+			event = osMailGet(commandResponseMailHandle, 20);
 		}
 		
 		commandResponse = (mailCommandResponse *)event.value.p;       // ".p" indicates that the message is a pointer
