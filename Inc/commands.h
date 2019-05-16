@@ -26,9 +26,12 @@ static const uint16_t CMD_GETKFILESNUM = 0x0005;
 static const uint16_t CMD_GETCAN1FILENAME = 0x0006;
 static const uint16_t CMD_GETCAN2FILENAME = 0x0007;
 static const uint16_t CMD_GETKFILENAME = 0x0008;
-static const uint16_t CMD_GETCAN1FILE = 0x0009;
-static const uint16_t CMD_GETCAN2FILE = 0x000A;
-static const uint16_t CMD_GETKFILE = 0x000B;
+static const uint16_t CMD_GETCAN1FILESIZE = 0x0009;
+static const uint16_t CMD_GETCAN2FILESIZE = 0x000A;
+static const uint16_t CMD_GETKFILESIZE = 0x000B;
+static const uint16_t CMD_GETCAN1FILE = 0x000C;
+static const uint16_t CMD_GETCAN2FILE = 0x000D;
+static const uint16_t CMD_GETKFILE = 0x000E;
 
 static const uint16_t GRP_CAN_LINE1 = 0x0001;
 static const uint16_t GRP_CAN_LINE2 = 0x0002;

@@ -220,6 +220,46 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 		else
 			Throw(PARAMETERS_NOT_CORRECT);
 	}
+	else if(command == CMD_GETCAN1FILESIZE ||
+		      command == CMD_GETCAN2FILESIZE ||
+					command == CMD_GETKFILESIZE)
+	{
+		FILINFO fileInfo;
+		DIR dirInfo;
+		FRESULT searchResult;
+		int fileIndex = 0;
+		int selectedFileIndex = GetUInt32FromBuffer(commandData->dataBuff, 0);
+		
+		if(command == CMD_GETCAN1FILESIZE)
+		{
+			PrintLnDebugMessage(">> Command: Get CAN1 file size");
+			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN1", "CAN1*.*");
+		}
+		else if(command == CMD_GETCAN2FILESIZE)
+		{
+			PrintLnDebugMessage(">> Command: Get CAN2 file size");
+			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN2", "CAN2*.*");
+		}
+		else if(command == CMD_GETKFILESIZE)
+		{
+			PrintLnDebugMessage(">> Command: Get K file size");
+			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\K", "K*.*");
+		}
+		
+		// Scorro tutti i file fino a trovare quello con l'indice corretto
+		while(fileIndex != selectedFileIndex && searchResult == FR_OK && fileInfo.fname[0])
+		{
+			fileIndex++;
+			searchResult = f_findnext(&dirInfo, &fileInfo);
+		}
+		
+		f_closedir(&dirInfo);
+		
+		if(fileIndex == selectedFileIndex && strcmp(fileInfo.fname, "") != 0)
+			responseData->response = (uint32_t)fileInfo.fsize;
+		else
+			Throw(PARAMETERS_NOT_CORRECT);
+	}
 	else if(command == CMD_GETCAN1FILE ||
 					command == CMD_GETCAN2FILE ||
 					command == CMD_GETKFILE)

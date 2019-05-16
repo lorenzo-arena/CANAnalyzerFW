@@ -52,7 +52,7 @@
     extern uint32_t SystemCoreClock;
 #endif
 
-#define configUSE_PREEMPTION                     1
+#define configUSE_PREEMPTION                     0
 #define configSUPPORT_STATIC_ALLOCATION          0
 #define configSUPPORT_DYNAMIC_ALLOCATION         1
 #define configUSE_IDLE_HOOK                      0
@@ -68,6 +68,7 @@
 #define configQUEUE_REGISTRY_SIZE                8
 #define configCHECK_FOR_STACK_OVERFLOW           2
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION  1
+#define configRECORD_STACK_HIGH_ADDRESS          1
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES                    0
