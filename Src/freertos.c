@@ -30,6 +30,7 @@
 #include "dispatcher.h"
 #include "canspy.h"
 #include "mailformats.h"
+#include "fatfs.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,6 +68,7 @@ osThreadId defaultTaskHandle;
 
 void StartDefaultTask(void const * argument);
 
+extern void MX_FATFS_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* Hook prototypes */
@@ -116,13 +118,13 @@ void MX_FREERTOS_Init(void) {
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-	osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 512);
+	osThreadDef(dispatcherTask, StartDispatcherTask, osPriorityNormal, 0, 2048);
 	dispatcherTaskHandle = osThreadCreate(osThread(dispatcherTask), NULL);
 
-	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 512);
+	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 2048);
 	bleTaskHandle = osThreadCreate(osThread(bleTask), NULL);
 
-	osThreadDef(canLine1Task, StartCANSpyTask, osPriorityNormal, 0, 512);
+	osThreadDef(canLine1Task, StartCANSpyTask, osPriorityNormal, 0, 128);
 	canLine1TaskHandle = osThreadCreate(osThread(canLine1Task), (void *)1);
   /* USER CODE END RTOS_THREADS */
 
@@ -134,9 +136,12 @@ void MX_FREERTOS_Init(void) {
   * @param  argument: Not used 
   * @retval None
   */
+
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
+  /* init code for FATFS */
+  MX_FATFS_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
