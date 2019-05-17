@@ -187,3 +187,72 @@ void SetCANLineParameter(int lineNumber, CANSpyParam params)
 	}
 }
 
+
+// In realta' questa funzione deve essere usata durante il salvataggio del file; la getbuffer per il monitor non dovra' cambiare gli indici ma soltanto copiare la memoria
+/*********************************** FROM TOS ***********************/
+/*
+void Spy_CAN_GetBuffer(dword dwMessage_maxSize)
+{
+	volatile dword dwSize, dwResto, dwStart, dwEnd; // dwSize è la size del messaggio che mando su usb, dwResto è l'eventuale resto che ho ricevuto nel trasdata ma non posso mandare su usb, altrimenti
+	volatile bool bJump = false;					// riempirei il buffer in ricezione SW
+
+	dwResto = 0;
+		
+	if (GetError()==NO_ERROR)
+	{
+		dwStart = m_CAN_Spy_Param.dwSpy_Start; 
+		dwEnd = m_CAN_Spy_Param.dwSpy_End;
+		 		
+		if ( dwEnd >= dwStart ) // Eseguo il controllo sugli indici perché è implementato come buffer circolare
+		{
+			dwSize = dwEnd - dwStart;	
+			if ( dwSize > dwMessage_maxSize )
+			{
+				dwResto = dwSize - dwMessage_maxSize;
+				dwSize = dwMessage_maxSize;
+			}	
+		}
+		else
+		{
+			dwSize = CAN_NFRAMESPYBUFFER + dwEnd - dwStart;
+			bJump = true;
+			if ( dwSize > dwMessage_maxSize )
+			{
+				if( (dwStart + dwMessage_maxSize) < CAN_NFRAMESPYBUFFER )
+				{
+					bJump = false;
+					dwResto = dwSize - dwMessage_maxSize;
+					dwSize = dwMessage_maxSize; 
+				}
+				else
+				{
+					dwResto = dwSize - dwMessage_maxSize;
+					dwSize = dwMessage_maxSize;
+					dwEnd = dwStart + dwSize - CAN_NFRAMESPYBUFFER; // Devo cambiare l'indice in modo tale da mandare la quantità giusta del buffer salvato  
+				}
+			}
+		}
+
+		// Per adesso non mando dwResto su al SW
+		if( bJump ) // La parte di buffer da mandare è spezzata, mando separatamente le due parti
+		{
+			Interface_SendBufferSpy(INTERFACE_CMD_SPYCANGETBUFFER, dwResto, (byte*)(CAN_SpyBuffer+dwStart), (dwSize-dwEnd)*sizeof(CAN_MSGSPY), (byte*)CAN_SpyBuffer, dwEnd*sizeof(CAN_MSGSPY));
+		}
+		else
+		{
+			Interface_SendBufferSpy(INTERFACE_CMD_SPYCANGETBUFFER, dwResto, (byte*)(CAN_SpyBuffer+dwStart), dwSize*sizeof(CAN_MSGSPY), NULL, 0);
+		}
+
+		m_CAN_Spy_Param.dwSpy_Start += dwSize;
+		if( m_CAN_Spy_Param.dwSpy_Start >= CAN_NFRAMESPYBUFFER )
+			m_CAN_Spy_Param.dwSpy_Start -= CAN_NFRAMESPYBUFFER;
+	}
+	else
+	{
+		Interface_SendError(GetError());
+
+		ClearError();
+	} 
+}
+*/
+

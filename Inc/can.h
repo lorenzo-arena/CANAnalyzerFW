@@ -36,9 +36,30 @@ extern CAN_HandleTypeDef hcan2;
 /* USER CODE BEGIN Private defines */
 #define CANMessageReceivedSignal 0x0001
 
-
 #define NORMAL_FRAME_FORMAT 11
 #define EXTENDED_FRAME_FORMAT 29
+
+#define CANSpyBufferLength	250
+
+// Dimensione totale: 20 byte
+typedef struct
+{
+	uint32_t time; // utilizzare ?
+	uint32_t id;
+	uint8_t dataSize;
+	uint8_t isError;
+	uint8_t errorCode;
+	uint8_t dummy; // per allineamento 4 byte	
+	uint8_t data[8];
+} CANMsg;
+
+extern uint32_t CAN1BufferHead;
+extern uint32_t CAN1BufferTail;
+extern CANMsg CAN1SpyBuffer[CANSpyBufferLength];
+
+extern uint32_t CAN2BufferHead;
+extern uint32_t CAN2BufferTail;
+extern CANMsg CAN2SpyBuffer[CANSpyBufferLength];
 
 /* USER CODE END Private defines */
 
