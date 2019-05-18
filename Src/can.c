@@ -257,7 +257,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	
 	// 5 - Non si tratta di un errore
 	frame->isError = 0x00;
-	frame->errorCode = 0x00;
+	frame->errorCode = 0x00000000;
 	
 	// 6 - Incremento il puntatore alla coda
 	(*bufferTail)++;
@@ -287,96 +287,19 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 	
 	// In base all'indice dell'ultimo messaggio aggancio al buffer della spia un messaggio
 	// 1 - Per prima cosa resetto il valore di tutto lo struct
-	memset(frame, 0x00, ;
+	memset(frame, 0x00, sizeof(CANMsg));
 	
-	// 5 - Incremento il puntatore alla coda
+	// 2 - TODO : impostare campo time
+	
+	// 3 - Si tratta di un errore
+	frame->isError = 0x01;
+	frame->errorCode = errorCode;
+	
+	// 4 - Incremento il puntatore alla coda
 	(*bufferTail)++;
 	if( (*bufferTail) >= CANSpyBufferLength )
 		(*bufferTail) -= CANSpyBufferLength;
 }
-
-/****************************** FROM TOS ********************************/
-/*
-void CAN_Handler(void) __irq 
-{ 
-	volatile CAN_MSGBUFFER *pTemp;
-	volatile DWORD CANStatus;
-
-	volatile DWORD dwID;
-	volatile WORD ErrCounter;
-	volatile BOOL bError;
-	volatile CAN_MSGSPY *pTempSpy;
-			
-	if(m_CAN_Spy_Param.bSpy_Active)
-	{	
-		CANStatus = CAN_RX_SR;
-
-		pTempSpy = &CAN_SpyBuffer[m_CAN_Spy_Param.dwSpy_End]; // Prelevo il puntatore alla struttura attuale
-
-		if ( CANStatus & (1 << 9) )
-		{
-			// Non c'è differenza tra simple e extended frame una volta che ho settato i parametri
-
-			if(m_CAN_Spy_Param.bSpy_ExtendedFrameFormat)
-				dwID = CAN2RID & 0x1FFFFFFF; 
-			else
-				dwID = CAN2RID & 0x000007FF;
-				   	
-			if((dwID & m_CAN_Spy_Param.dwSpy_Mask) == m_CAN_Spy_Param.dwSpy_MaskedID)	// Implemento qui la maschera anziché utilizzare le LUT
-			{
-				// Setto i parametri della struttura prelevando le componenti del messaggio dai registri
-				pTempSpy->ID = dwID;
-				pTempSpy->ErrCount = (byte)(CAN2GSR>>16)&0x000000FF;
-				pTempSpy->FrameInfo = (byte)((CAN2RFS>>16)&0x0000000F | (CAN2RFS>>23)&0x00000080);
-				pTempSpy->ReceptionError = 0x00;
-				pTempSpy->Time = GetTickCount() - m_CAN_Spy_Param.dwSpy_Time;
-				pTempSpy->DataA = CAN2RDA;
-				pTempSpy->DataB = CAN2RDB;  
-		
-				m_CAN_Spy_Param.dwSpy_End++;
-				if( m_CAN_Spy_Param.dwSpy_End >= CAN_NFRAMESPYBUFFER )
-					m_CAN_Spy_Param.dwSpy_End -= CAN_NFRAMESPYBUFFER;
-			} 						
-		}
-
-		if ( CAN2ICR & (1 << 7) ) 
-	    {
-		 	// Entro qui se rilevo un bus error
-			if(m_CAN_Spy_Param.bSpy_ErrorDetection)
-			{
-				if(m_CAN_Spy_Param.bSpy_ExtendedFrameFormat)
-					dwID = CAN2RID & 0x1FFFFFFF; 
-				else
-					dwID = CAN2RID & 0x000007FF;
-				
-				pTempSpy->ID = dwID;
-				if(m_CAN_Spy_Param.dwSpy_End>0)
-					pTempSpy->ErrCount = CAN_SpyBuffer[m_CAN_Spy_Param.dwSpy_End-1].ErrCount++;
-				else
-					pTempSpy->ErrCount = CAN_SpyBuffer[CAN_NFRAMESPYBUFFER-1].ErrCount++;
-				pTempSpy->FrameInfo = 0x08;
-				pTempSpy->ReceptionError = 0x01;
-				pTempSpy->Time = GetTickCount() - m_CAN_Spy_Param.dwSpy_Time;
-				pTempSpy->DataA = 0x5A5A5A5A;
-				pTempSpy->DataB = 0x5A5A5A5A;
-
-				m_CAN_Spy_Param.dwSpy_End++;
-				if( m_CAN_Spy_Param.dwSpy_End >= CAN_NFRAMESPYBUFFER )
-					m_CAN_Spy_Param.dwSpy_End -= CAN_NFRAMESPYBUFFER;
-			}
-		}
-					  
-		if ( CAN2GSR & (1 << 6) ) 
-		{
-			// Entro qui solo se raggiungo il limite massimo sull'Error Counter in ricezione
-		}
-
-		CAN2CMR = 0x04; // release receive buffer 
-
-		VICVectAddr = 0;		// Acknowledge Interrupt
-	}
-}
-*/
 /* USER CODE END 1 */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

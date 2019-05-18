@@ -46,10 +46,10 @@ typedef struct
 {
 	uint32_t time; // utilizzare ?
 	uint32_t id;
+	uint16_t dummy; // per allineamento 4 byte	
 	uint8_t dataSize;
 	uint8_t isError;
-	uint8_t errorCode;
-	uint8_t dummy; // per allineamento 4 byte	
+	uint32_t errorCode;
 	uint8_t data[8];
 } CANMsg;
 
