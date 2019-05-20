@@ -11,7 +11,7 @@
 #include "arr_converter.h"
 #include "cexception.h"
 
-#include "can.h"
+#include "string.h"
 
 typedef struct
 {
@@ -58,11 +58,19 @@ void StartCANLine(int lineNumber)
 {
 	if(lineNumber == 1)
 	{
+		memset(CAN1SpyBuffer, 0x00, CANSpyBufferLength * sizeof(CANMsg));
+		CAN1BufferHead = 0x00000000;
+		CAN1BufferTail = 0x00000000;
+		
 		if (HAL_CAN_ActivateNotification(&hcan1, CANLine1Interrupts) != HAL_OK)
 			Error_Handler();
 	}
 	else if(lineNumber == 2)
 	{
+		memset(CAN2SpyBuffer, 0x00, CANSpyBufferLength * sizeof(CANMsg));
+		CAN2BufferHead = 0x00000000;
+		CAN2BufferTail = 0x00000000;
+
 		if (HAL_CAN_ActivateNotification(&hcan2, CANLine2Interrupts) != HAL_OK)
 			Error_Handler();
 	}
@@ -184,6 +192,74 @@ void SetCANLineParameter(int lineNumber, CANSpyParam params)
 	{
 		/* Start Error */
 		Error_Handler();
+	}
+}
+
+void GetCANSpyBuffer(int lineNumber, CANMsg *outBuff, uint32_t outBuffLength)
+{
+	uint32_t buffHead;
+	uint32_t buffTail;
+	CANMsg *lineBuff;
+	uint32_t size = 0;
+	uint32_t reminder = 0;
+	
+	if(lineNumber == 1)
+	{
+		// TODO : acquisite mutex ??
+		buffHead = CAN1BufferHead;
+		buffTail = CAN1BufferTail;
+		lineBuff = CAN1SpyBuffer;
+	}
+	else if(lineNumber == 2)
+	{
+		buffHead = CAN2BufferHead;
+		buffTail = CAN2BufferTail;
+		lineBuff = CAN2SpyBuffer;
+	}
+	else
+		Throw(FUNCTION_BAD_CALL);
+	
+	if(buffTail >= buffHead)
+	{
+		if(buffTail - buffHead < outBuffLength)
+		{
+			// Prelevo i pochi messaggio presenti partendo dalla testa
+			memcpy(outBuff, &lineBuff[buffHead], (buffTail - buffHead + 1) * sizeof(CANMsg));
+		}
+		else
+		{
+			// Prelevo 20 messaggi mettendo tail per ultimo
+			memcpy(outBuff, &lineBuff[buffTail - (outBuffLength - 1)], outBuffLength * sizeof(CANMsg));
+		}
+	}
+	else
+	{
+		if(buffTail > outBuffLength - 1)
+		{
+			// Prelevo 20 messaggi mettendo tail per ultimo
+			memcpy(outBuff, &lineBuff[buffTail - outBuffLength + 1], outBuffLength * sizeof(CANMsg));
+		}
+		else
+		{
+			if((buffTail + 1) + (CANSpyBufferLength - buffHead) < outBuffLength)
+			{
+				// Prelevo la prima parte di messaggi
+				memcpy(outBuff, &lineBuff[buffHead], (CANSpyBufferLength - buffHead) * sizeof(CANMsg));
+				
+				// Prelevo la seconda parte di messaggi
+				memcpy(&outBuff[CANSpyBufferLength - buffHead], &lineBuff[0], (buffTail + 1) * sizeof(CANMsg));
+			}
+			else
+			{
+				uint32_t reminder = outBuffLength - (buffTail + 1);
+				
+				// Prelevo la prima parte di messaggi
+				memcpy(outBuff, &lineBuff[CANSpyBufferLength - reminder], (reminder) * sizeof(CANMsg));
+				
+				// Prelevo la seconda parte di messaggi
+				memcpy(&outBuff[CANSpyBufferLength - reminder], &lineBuff[0], (buffTail + 1) * sizeof(CANMsg));
+			}
+		}
 	}
 }
 

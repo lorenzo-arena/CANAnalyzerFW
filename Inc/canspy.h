@@ -19,6 +19,8 @@
 
 #include "stdbool.h"
 
+#include "can.h"
+
 typedef struct
 {
 	uint32_t bitTiming;
@@ -33,6 +35,7 @@ void StartCANSpyTask(void const * argument);
 void SetCANLineParameter(int lineNumber, CANSpyParam params);
 void StartCANLine(int lineNumber);
 void StopCANLine(int lineNumber);
+void GetCANSpyBuffer(int lineNumber, CANMsg *outBuff, uint32_t outBuffLength);
 
 #endif /*__CANSPY_H */
 

@@ -45,13 +45,13 @@ void StartDispatcherTask(void const * argument)
 	osEvent event;
 	
 	/* init code for FATFS */
-  MX_FATFS_Init();
+  //MX_FATFS_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
-	if(f_mount(&myFatFS, "", 1) != FR_OK)
-	{
-		Error_Handler();
-	}
+	//if(f_mount(&myFatFS, "", 1) != FR_OK)
+	//{
+	//	Error_Handler();
+	//}
 
 	for(;;)
 	{		
@@ -314,17 +314,17 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 
 void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData)
 {
-	if(command == CMD_STARTCANLINE)
+	if(command == CMD_STARTLINE)
 	{
 		PrintLnDebugMessage(">> Command: Start CAN1 Line");
 		StartCANLine(1);
 	}
-	else if(command == CMD_STOPCANLINE)
+	else if(command == CMD_STOPLINE)
 	{	
 		PrintLnDebugMessage(">> Command: Stop CAN1 Line");		
 		StopCANLine(1);
 	}
-	else if(command == CMD_SETCANPARAM)
+	else if(command == CMD_SETPARAM)
 	{
 		CANSpyParam params;
 		params.bitTiming = GetUInt32FromBuffer(commandData->dataBuff, 0);
@@ -337,23 +337,33 @@ void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommand
 		PrintLnDebugMessage(">> Command: Set CAN1 parameters");
 		SetCANLineParameter(1, params);
 	}
+	else if(command == CMD_GETBUFFER)
+	{
+		PrintLnDebugMessage(">> Command: Get CAN1 buffer");
+		
+		responseData->responseBuff = malloc(10 * sizeof(CANMsg));
+		responseData->responseBuffLength = 10 * sizeof(CANMsg);
+		memset(responseData->responseBuff, 0x00, 10 * sizeof(CANMsg));
+		
+		GetCANSpyBuffer(1, (CANMsg *)responseData->responseBuff, 10); 
+	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);
 }
 
 void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData)
 {
-	if(command == CMD_STARTCANLINE)
+	if(command == CMD_STARTLINE)
 	{
 		PrintLnDebugMessage(">> Command: Start CAN2 Line");
 		StartCANLine(2);
 	}
-	else if(command == CMD_STOPCANLINE)
+	else if(command == CMD_STOPLINE)
 	{
 		PrintLnDebugMessage(">> Command: Stop CAN1 Line");
 		StopCANLine(2);
 	}
-	else if(command == CMD_SETCANPARAM)
+	else if(command == CMD_SETPARAM)
 	{
 		CANSpyParam params;
 		params.bitTiming = GetUInt32FromBuffer(commandData->dataBuff, 0);
@@ -365,6 +375,16 @@ void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommand
 
 		PrintLnDebugMessage(">> Command: Set CAN2 parameters");
 		SetCANLineParameter(2, params);
+	}
+	else if(command == CMD_GETBUFFER)
+	{
+		PrintLnDebugMessage(">> Command: Get CAN2 buffer");
+		
+		responseData->responseBuff = malloc(10 * sizeof(CANMsg));
+		responseData->responseBuffLength = 10 * sizeof(CANMsg);
+		memset(responseData->responseBuff, 0x00, 10 * sizeof(CANMsg));
+		
+		GetCANSpyBuffer(2, (CANMsg *)responseData->responseBuff, 10);
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);

@@ -241,25 +241,21 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData);
 	}
 	
-	// In base all'indice dell'ultimo messaggio aggancio al buffer della spia un messaggio
-	// 1 - Per prima cosa resetto il valore di tutto lo struct
-	memset(frame, 0x00, sizeof(CANMsg));
-	
-	// 2 - TODO : impostare campo time
+	// In base all'indice dell'ultimo messaggio aggancio al buffer della spia un messaggio	
+	// 1 - TODO : impostare campo time
 
-	// 3 - Imposto l'ID del messaggio ricevuto
-	frame->id = RxHeader.ExtId;
+	// 2 - Imposto l'ID del messaggio ricevuto
+	frame->id = RxHeader.StdId;
 	
-	// 4 - Copio i dati del buffer
-	memset(frame->data, 0x00, 8);
+	// 3 - Copio i dati del buffer
 	frame->dataSize = RxHeader.DLC;
 	memcpy(frame->data, RxData, RxHeader.DLC);
 	
-	// 5 - Non si tratta di un errore
+	// 4 - Non si tratta di un errore
 	frame->isError = 0x00;
 	frame->errorCode = 0x00000000;
 	
-	// 6 - Incremento il puntatore alla coda
+	// 5 - Incremento il puntatore alla coda
 	(*bufferTail)++;
 	if( (*bufferTail) >= CANSpyBufferLength )
 		(*bufferTail) -= CANSpyBufferLength;
@@ -286,16 +282,14 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 	}
 	
 	// In base all'indice dell'ultimo messaggio aggancio al buffer della spia un messaggio
-	// 1 - Per prima cosa resetto il valore di tutto lo struct
-	memset(frame, 0x00, sizeof(CANMsg));
 	
-	// 2 - TODO : impostare campo time
+	// 1 - TODO : impostare campo time
 	
-	// 3 - Si tratta di un errore
+	// 2 - Si tratta di un errore
 	frame->isError = 0x01;
 	frame->errorCode = errorCode;
 	
-	// 4 - Incremento il puntatore alla coda
+	// 3 - Incremento il puntatore alla coda
 	(*bufferTail)++;
 	if( (*bufferTail) >= CANSpyBufferLength )
 		(*bufferTail) -= CANSpyBufferLength;

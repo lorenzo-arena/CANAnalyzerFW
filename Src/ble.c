@@ -359,13 +359,9 @@ void CallDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBu
 				for(packetsIndex = 0; packetsIndex < packetsNum; packetsIndex++)
 				{
 					uint32_t packetSize = (packetsIndex < packetsNum - 1) ? 20 : (messageLength % 20);
-					uint8_t *packetFrame = malloc(packetSize);
-					
-					memcpy(packetFrame, responseFrame + 20 * packetsIndex, packetSize);
 					
 					// Invio il pacchetto corrente
-					SendToModule_IT(packetFrame, packetSize);
-					free(packetFrame);
+					SendToModule_IT(responseFrame + 20 * packetsIndex, packetSize);
 					
 					ReceivePacketOKCommand();
 				}
@@ -431,9 +427,6 @@ void SendToModule_IT(uint8_t *message, uint32_t maxLength)
 	// Loggo il messaggio inviato
 	PrintDebugMessage("Sending: ");
 	PrintLnDebugBuffer(message, maxLength);
-	
-	if(message[0] == 0x00 || message[0] == 0xFF)
-		Throw(NO_ERROR);
 	
 	HAL_UART_Transmit_IT(&huart1, message, maxLength);
 	osSignalWait(UART1MessageSentSignal, osWaitForever);

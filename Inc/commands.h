@@ -35,11 +35,12 @@ static const uint16_t CMD_GETKFILE = 0x000E;
 
 static const uint16_t GRP_CAN_LINE1 = 0x0001;
 static const uint16_t GRP_CAN_LINE2 = 0x0002;
-static const uint16_t CMD_STARTCANLINE = 0x0001;
-static const uint16_t CMD_STOPCANLINE = 0x0002;
-static const uint16_t CMD_SETCANPARAM = 0x0003;
-
 static const uint16_t GRP_K_LINE = 0x0003;
+
+static const uint16_t CMD_STARTLINE = 0x0001;
+static const uint16_t CMD_STOPLINE = 0x0002;
+static const uint16_t CMD_SETPARAM = 0x0003;
+static const uint16_t CMD_GETBUFFER = 0x0004;
 
 static const uint16_t GRP_UTILITY = 0x0004;
 static const uint16_t CMD_WAIT = 0x0000;
