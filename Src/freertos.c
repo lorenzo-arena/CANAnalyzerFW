@@ -136,7 +136,7 @@ void MX_FREERTOS_Init(void) {
   * @param  argument: Not used 
   * @retval None
   */
-
+FATFS SDFatFSHandle;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -144,6 +144,12 @@ void StartDefaultTask(void const * argument)
   MX_FATFS_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
+	
+	if(f_mount(&SDFatFSHandle, "", 1) != FR_OK)
+	{
+		Error_Handler();
+	}
+	
   /* Infinite loop */
   for(;;)
   {

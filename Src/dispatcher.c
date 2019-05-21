@@ -29,9 +29,6 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 osThreadId can1TaskHandle = NULL;
 osThreadId can2TaskHandle = NULL;
 
-FATFS myFatFS;
-FIL myFile;
-
 /**
   * @brief  Function implementing the StartDispatcherTask thread.
   * @param  argument: Not used 
@@ -43,15 +40,6 @@ void StartDispatcherTask(void const * argument)
 	mailCommand *commandData = NULL;
 	mailCommandResponse *commandResponse = NULL;
 	osEvent event;
-	
-	/* init code for FATFS */
-  //MX_FATFS_Init();
-
-  /* USER CODE BEGIN StartDefaultTask */
-	//if(f_mount(&myFatFS, "", 1) != FR_OK)
-	//{
-	//	Error_Handler();
-	//}
 
 	for(;;)
 	{		

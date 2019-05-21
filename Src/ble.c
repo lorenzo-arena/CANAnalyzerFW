@@ -24,7 +24,7 @@
 
 // Per adesso cambio
 //const int maxCommandTimeout = 500;
-const int maxCommandTimeout = osWaitForever;
+const int maxCommandTimeout = 2000;
 
 /* Private functions */
 void InitBLE(void);
@@ -181,6 +181,7 @@ bool ReceivePacketOKCommand()
 	{
 		if(frame != NULL)
 			free(frame);
+
 		Throw(ex);
 	}
 	
@@ -233,6 +234,7 @@ bool ReceiveCommand(uint32_t length)
 	{
 		if(frame != NULL)
 			free(frame);
+
 		Throw(ex);
 	}
 	
@@ -335,35 +337,53 @@ void CallDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBu
 				int packetsIndex = 0;
 				int packetsNum = ((messageLength % 20) == 0) ? (messageLength / 20) : ((messageLength / 20) + 1);
 				const int packetCommandLength = 20;
-				uint8_t *packetCommandFrame = malloc(packetCommandLength);
+				uint8_t *packetCommandFrame = NULL;
 				
-				PrintLnDebugMessage("*** Start packets transmission ***");
-				
-				strcpy((char *)packetCommandFrame, FRAME_HEADER);
-				SetBufferFromUInt32(NO_ERROR, packetCommandFrame, 4);
-				SetBufferFromUInt32(0x3F3F3F3F, packetCommandFrame, 8);
-				
-				// Imposto la size che il dispositivo dovra' ricevere
-				SetBufferFromUInt32(messageLength, packetCommandFrame, 12);
-				
-				// Calcolo il crc
-				crcResponse = CRC32_Compute(packetCommandFrame, packetCommandLength - 4);
-				SetBufferFromUInt32(crcResponse, packetCommandFrame, packetCommandLength - 4);
-				
-				// Invio la risposta per l'invio dei pacchetti
-				SendToModule_IT(packetCommandFrame, packetCommandLength);
-				free(packetCommandFrame);
-				
-				ReceivePacketOKCommand();
-				
-				for(packetsIndex = 0; packetsIndex < packetsNum; packetsIndex++)
+				Try
 				{
-					uint32_t packetSize = (packetsIndex < packetsNum - 1) ? 20 : (messageLength % 20);
+					packetCommandFrame = malloc(packetCommandLength);
+				
+					PrintLnDebugMessage("*** Start packets transmission ***");
 					
-					// Invio il pacchetto corrente
-					SendToModule_IT(responseFrame + 20 * packetsIndex, packetSize);
+					strcpy((char *)packetCommandFrame, FRAME_HEADER);
+					SetBufferFromUInt32(NO_ERROR, packetCommandFrame, 4);
+					SetBufferFromUInt32(0x3F3F3F3F, packetCommandFrame, 8);
+					
+					// Imposto la size che il dispositivo dovra' ricevere
+					SetBufferFromUInt32(messageLength, packetCommandFrame, 12);
+					
+					// Calcolo il crc
+					crcResponse = CRC32_Compute(packetCommandFrame, packetCommandLength - 4);
+					SetBufferFromUInt32(crcResponse, packetCommandFrame, packetCommandLength - 4);
+					
+					// Invio la risposta per l'invio dei pacchetti
+					SendToModule_IT(packetCommandFrame, packetCommandLength);
+					free(packetCommandFrame);
+					packetCommandFrame = NULL;
 					
 					ReceivePacketOKCommand();
+					
+					for(packetsIndex = 0; packetsIndex < packetsNum; packetsIndex++)
+					{
+						uint32_t packetSize = (packetsIndex < packetsNum - 1) ? 20 : (messageLength % 20);
+						
+						// Invio il pacchetto corrente
+						SendToModule_IT(responseFrame + 20 * packetsIndex, packetSize);
+						
+						ReceivePacketOKCommand();
+					}
+				}
+				Catch(ex)
+				{
+					if(packetCommandFrame != NULL)
+						free(packetCommandFrame);
+					
+					if(responseFrame != NULL)
+						free(responseFrame);
+					
+					osMailFree(commandResponseMailHandle, commandResponse);
+					
+					Throw(ex);
 				}
 			}
 			
@@ -376,6 +396,8 @@ void CallDispatcher(uint16_t commandGroup, uint16_t commandCode, uint8_t *dataBu
 	{
 		if(responseFrame != NULL)
 			free(responseFrame);
+		
+		osMailFree(commandResponseMailHandle, commandResponse);
 		
 		Throw(ex);
 	}
