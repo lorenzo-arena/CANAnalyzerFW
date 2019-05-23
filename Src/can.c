@@ -227,15 +227,19 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	uint8_t               RxData[8];
 	CANMsg *frame;
 	uint32_t *bufferTail;
+	uint32_t *bufferHead;
+	uint32_t actualSize = 0;
 	
 	if(hcan->Instance == CAN1)
 	{
+		bufferHead = &CAN1BufferHead;
 		bufferTail = &CAN1BufferTail;
 		frame = &CAN1SpyBuffer[CAN1BufferTail];
 		HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, RxData);
 	}
 	else if(hcan->Instance == CAN2)
 	{
+		bufferHead = &CAN2BufferHead;
 		bufferTail = &CAN2BufferTail;
 		frame = &CAN2SpyBuffer[CAN2BufferTail];
 		HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData);
@@ -259,6 +263,24 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	(*bufferTail)++;
 	if( (*bufferTail) >= CANSpyBufferLength )
 		(*bufferTail) -= CANSpyBufferLength;
+	
+	// Calcolo il numero di messaggi attuali per lanciare il salvataggio
+	if( (*bufferTail) >= (*bufferHead) )
+		actualSize = (*bufferTail) - (*bufferHead);	
+	else
+		actualSize = CANSpyBufferLength + (*bufferTail) - (*bufferHead);
+	
+	if(actualSize >= CANSpyBufferLengthToFlush)
+	{
+		if(hcan->Instance == CAN1)
+		{
+			osSignalSet(canLine1TaskHandle, CANBufferHasToBeFlushed);
+		}
+		else if(hcan->Instance == CAN2)
+		{
+			osSignalSet(canLine2TaskHandle, CANBufferHasToBeFlushed);
+		}
+	}
 }
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
@@ -266,18 +288,22 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 	uint8_t errorCode;
 	CANMsg *frame;
 	uint32_t *bufferTail;
+	uint32_t *bufferHead;
+	uint32_t actualSize = 0;
 
 	errorCode = HAL_CAN_GetError(hcan);
 	HAL_CAN_ResetError(hcan);	
 	
 	if(hcan->Instance == CAN1)
 	{
+		bufferHead = &CAN1BufferHead;
 		bufferTail = &CAN1BufferTail;
 		frame = &CAN1SpyBuffer[CAN1BufferTail];
 	}
 	else if(hcan->Instance == CAN2)
 	{
-		bufferTail = &CAN2BufferTail;
+		bufferHead = &CAN2BufferHead;
+		bufferTail = &CAN2BufferTail;		
 		frame = &CAN2SpyBuffer[CAN2BufferTail];
 	}
 	
@@ -293,6 +319,25 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 	(*bufferTail)++;
 	if( (*bufferTail) >= CANSpyBufferLength )
 		(*bufferTail) -= CANSpyBufferLength;
+	
+	
+	// Calcolo il numero di messaggi attuali per lanciare il salvataggio
+	if( (*bufferTail) >= (*bufferHead) )
+		actualSize = (*bufferTail) - (*bufferHead);	
+	else
+		actualSize = CANSpyBufferLength + (*bufferTail) - (*bufferHead);
+	
+	if(actualSize >= CANSpyBufferLengthToFlush)
+	{
+		if(hcan->Instance == CAN1)
+		{
+			osSignalSet(canLine1TaskHandle, CANBufferHasToBeFlushed);
+		}
+		else if(hcan->Instance == CAN2)
+		{
+			osSignalSet(canLine2TaskHandle, CANBufferHasToBeFlushed);
+		}
+	}
 }
 /* USER CODE END 1 */
 

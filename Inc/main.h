@@ -46,6 +46,7 @@ extern "C" {
 extern osThreadId bleTaskHandle;
 extern osThreadId dispatcherTaskHandle;
 extern osThreadId canLine1TaskHandle;
+extern osThreadId canLine2TaskHandle;
 
 extern osMailQId commandMailHandle;
 extern osMailQId commandResponseMailHandle;

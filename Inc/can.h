@@ -34,12 +34,13 @@ extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 
 /* USER CODE BEGIN Private defines */
-#define CANMessageReceivedSignal 0x0001
+#define CANBufferHasToBeFlushed 0x0001
 
 #define NORMAL_FRAME_FORMAT 11
 #define EXTENDED_FRAME_FORMAT 29
 
 #define CANSpyBufferLength	250
+#define CANSpyBufferLengthToFlush	150
 
 // Dimensione totale: 20 byte
 typedef struct

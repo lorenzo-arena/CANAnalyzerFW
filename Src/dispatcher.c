@@ -26,9 +26,6 @@ void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommand
 void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
 void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
 
-osThreadId can1TaskHandle = NULL;
-osThreadId can2TaskHandle = NULL;
-
 /**
   * @brief  Function implementing the StartDispatcherTask thread.
   * @param  argument: Not used 
