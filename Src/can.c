@@ -245,21 +245,24 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData);
 	}
 	
-	// In base all'indice dell'ultimo messaggio aggancio al buffer della spia un messaggio	
-	// 1 - TODO : impostare campo time
+	// In base all'indice dell'ultimo messaggio aggancio al buffer della spia un messaggio
+	// 1 - Resetto la struttura, per evitare di riciclare informazioni dalla giro precedente
+	memset(frame, 0x00, sizeof(CANMsg));
+	
+	// 2 - TODO : impostare campo time
 
-	// 2 - Imposto l'ID del messaggio ricevuto
+	// 3 - Imposto l'ID del messaggio ricevuto
 	frame->id = RxHeader.StdId;
 	
-	// 3 - Copio i dati del buffer
+	// 4 - Copio i dati del buffer
 	frame->dataSize = RxHeader.DLC;
 	memcpy(frame->data, RxData, RxHeader.DLC);
 	
-	// 4 - Non si tratta di un errore
+	// 5 - Non si tratta di un errore
 	frame->isError = 0x00;
 	frame->errorCode = 0x00000000;
 	
-	// 5 - Incremento il puntatore alla coda
+	// 6 - Incremento il puntatore alla coda
 	(*bufferTail)++;
 	if( (*bufferTail) >= CANSpyBufferLength )
 		(*bufferTail) -= CANSpyBufferLength;
@@ -273,13 +276,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	if(actualSize >= CANSpyBufferLengthToFlush)
 	{
 		if(hcan->Instance == CAN1)
-		{
 			osSignalSet(canLine1TaskHandle, CANBufferHasToBeFlushed);
-		}
 		else if(hcan->Instance == CAN2)
-		{
 			osSignalSet(canLine2TaskHandle, CANBufferHasToBeFlushed);
-		}
 	}
 }
 
@@ -308,14 +307,16 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 	}
 	
 	// In base all'indice dell'ultimo messaggio aggancio al buffer della spia un messaggio
+	// 1 - Resetto la struttura, per evitare di riciclare informazioni dalla giro precedente
+	memset(frame, 0x00, sizeof(CANMsg));
 	
-	// 1 - TODO : impostare campo time
+	// 2 - TODO : impostare campo time
 	
-	// 2 - Si tratta di un errore
+	// 3 - Si tratta di un errore
 	frame->isError = 0x01;
 	frame->errorCode = errorCode;
 	
-	// 3 - Incremento il puntatore alla coda
+	// 4 - Incremento il puntatore alla coda
 	(*bufferTail)++;
 	if( (*bufferTail) >= CANSpyBufferLength )
 		(*bufferTail) -= CANSpyBufferLength;
@@ -330,13 +331,9 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 	if(actualSize >= CANSpyBufferLengthToFlush)
 	{
 		if(hcan->Instance == CAN1)
-		{
 			osSignalSet(canLine1TaskHandle, CANBufferHasToBeFlushed);
-		}
 		else if(hcan->Instance == CAN2)
-		{
 			osSignalSet(canLine2TaskHandle, CANBufferHasToBeFlushed);
-		}
 	}
 }
 /* USER CODE END 1 */

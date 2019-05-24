@@ -36,7 +36,10 @@ CANTimingParamSet CANTimingParamLUT[] = {
 uint32_t CANLine1Interrupts = CAN_IT_RX_FIFO0_MSG_PENDING;
 uint32_t CANLine2Interrupts = CAN_IT_RX_FIFO0_MSG_PENDING;
 
+void FlushCANBufferIntoFile(int lineNumber);
+
 // Definisco questa variabile come globale per risparmiare spazio
+// nello stack del thread
 FIL fp;
 FRESULT fr;
 
@@ -51,87 +54,91 @@ void StartCANSpyTask(void const * argument)
 
 	for(;;)
 	{		
-		bool jump = false;
-		uint32_t size = 0;
-		uint32_t reminder = 0;
-		uint32_t buffHead = 0;
-		uint32_t buffTail = 0;
-		
 		osSignalWait(CANBufferHasToBeFlushed, osWaitForever);
+		FlushCANBufferIntoFile(CANLine);
+	}
+}
 
-		if(CANLine == 1)
-		{
-			buffHead = CAN1BufferHead;
-			buffTail = CAN1BufferTail;
-		}
-		else
-		{
-			buffHead = CAN2BufferHead;
- 			buffTail = CAN2BufferTail;
-		}
-		 		
-		if ( buffTail >= buffHead ) // Eseguo il controllo sugli indici perché è implementato come buffer circolare
-		{
-			size = buffTail - buffHead;	
-		}
-		else
-		{
-			size = CANSpyBufferLength + buffTail - buffHead;
-			jump = true;
-		}
-		
-		if(CANLine == 1)
-		{
-			CAN1BufferHead += size;
-			if( CAN1BufferHead >= CANSpyBufferLength )
-				CAN1BufferHead -= CANSpyBufferLength;
-		}
-		else
-		{
-			CAN2BufferHead += size;
-			if( CAN2BufferHead >= CANSpyBufferLength )
-				CAN2BufferHead -= CANSpyBufferLength;
-		}
-		
-		uint32_t written;
+void FlushCANBufferIntoFile(int lineNumber)
+{
+	bool jump = false;
+	uint32_t size = 0;
+	uint32_t reminder = 0;
+	uint32_t buffHead = 0;
+	uint32_t buffTail = 0;
 
-		/* Opens an existing file. If not exist, creates a new file. */
-		if(CANLine == 1)
-			fr = f_open(&fp, "\\CAN1\\CAN1.log", FA_WRITE | FA_OPEN_ALWAYS | FA_OPEN_APPEND);
-		else
-			fr = f_open(&fp, "\\CAN2\\CAN2.log", FA_WRITE | FA_OPEN_ALWAYS | FA_OPEN_APPEND);
-		
-		if (fr == FR_OK)
+	if(lineNumber == 1)
+	{
+		buffHead = CAN1BufferHead;
+		buffTail = CAN1BufferTail;
+	}
+	else
+	{
+		buffHead = CAN2BufferHead;
+		buffTail = CAN2BufferTail;
+	}
+			
+	if ( buffTail >= buffHead ) // Eseguo il controllo sugli indici perché è implementato come buffer circolare
+	{
+		size = buffTail - buffHead;	
+	}
+	else
+	{
+		size = CANSpyBufferLength + buffTail - buffHead;
+		jump = true;
+	}
+
+	if(lineNumber == 1)
+	{
+		CAN1BufferHead += size;
+		if( CAN1BufferHead >= CANSpyBufferLength )
+			CAN1BufferHead -= CANSpyBufferLength;
+	}
+	else
+	{
+		CAN2BufferHead += size;
+		if( CAN2BufferHead >= CANSpyBufferLength )
+			CAN2BufferHead -= CANSpyBufferLength;
+	}
+
+	uint32_t written;
+
+	/* Opens an existing file. If not exist, creates a new file. */
+	if(lineNumber == 1)
+		fr = f_open(&fp, "\\CAN1\\CAN1.log", FA_WRITE | FA_OPEN_ALWAYS | FA_OPEN_APPEND);
+	else
+		fr = f_open(&fp, "\\CAN2\\CAN2.log", FA_WRITE | FA_OPEN_ALWAYS | FA_OPEN_APPEND);
+
+	if (fr == FR_OK)
+	{
+		// Per adesso non mando dwResto su al SW
+		if( jump ) // La parte di buffer da mandare è spezzata, mando separatamente le due parti
 		{
-			// Per adesso non mando dwResto su al SW
-			if( jump ) // La parte di buffer da mandare è spezzata, mando separatamente le due parti
+			if(lineNumber == 1)
 			{
-				if(CANLine == 1)
-				{
-					// Salvo la prima parte di buffer
-					f_write(&fp, &CAN1SpyBuffer[buffHead], (size - buffTail) * sizeof(CANMsg), &written);
-					f_lseek(&fp, f_size(&fp));
-					// Salvo la seconda parte di buffer
-					f_write(&fp, &CAN1SpyBuffer[0], buffTail * sizeof(CANMsg), &written);
-				}
-				else
-				{
-					f_write(&fp, &CAN2SpyBuffer[buffHead], (size - buffTail) * sizeof(CANMsg), &written);
-					f_lseek(&fp, f_size(&fp));
-					f_write(&fp, &CAN2SpyBuffer[0], buffTail * sizeof(CANMsg), &written);
-				}
-
-				f_close(&fp);						
+				// Salvo la prima parte di buffer
+				f_write(&fp, &CAN1SpyBuffer[buffHead], (size - buffTail) * sizeof(CANMsg), &written);
+				f_lseek(&fp, f_size(&fp));
+				// Salvo la seconda parte di buffer
+				f_write(&fp, &CAN1SpyBuffer[0], buffTail * sizeof(CANMsg), &written);
 			}
 			else
 			{
-				if(CANLine == 1)
-					f_write(&fp, &CAN1SpyBuffer[buffHead], size * sizeof(CANMsg), &written);
-				else
-					f_write(&fp, &CAN2SpyBuffer[buffHead], size * sizeof(CANMsg), &written);
-				
-				f_close(&fp);
+				f_write(&fp, &CAN2SpyBuffer[buffHead], (size - buffTail) * sizeof(CANMsg), &written);
+				f_lseek(&fp, f_size(&fp));
+				f_write(&fp, &CAN2SpyBuffer[0], buffTail * sizeof(CANMsg), &written);
 			}
+
+			f_close(&fp);						
+		}
+		else
+		{
+			if(lineNumber == 1)
+				f_write(&fp, &CAN1SpyBuffer[buffHead], size * sizeof(CANMsg), &written);
+			else
+				f_write(&fp, &CAN2SpyBuffer[buffHead], size * sizeof(CANMsg), &written);
+			
+			f_close(&fp);
 		}
 	}
 }
@@ -140,6 +147,8 @@ void StartCANLine(int lineNumber)
 {
 	if(lineNumber == 1)
 	{
+		// Per adesso elimino il file della spiata precedente
+		f_unlink("\\CAN1\\CAN1.log");
 		memset(CAN1SpyBuffer, 0x00, CANSpyBufferLength * sizeof(CANMsg));
 		CAN1BufferHead = 0x00000000;
 		CAN1BufferTail = 0x00000000;
@@ -149,6 +158,8 @@ void StartCANLine(int lineNumber)
 	}
 	else if(lineNumber == 2)
 	{
+		// Per adesso elimino il file della spiata precedente
+		f_unlink("\\CAN2\\CAN2.log");
 		memset(CAN2SpyBuffer, 0x00, CANSpyBufferLength * sizeof(CANMsg));
 		CAN2BufferHead = 0x00000000;
 		CAN2BufferTail = 0x00000000;
@@ -170,10 +181,12 @@ void StopCANLine(int lineNumber)
 	else if(lineNumber == 2)
 	{
 		if (HAL_CAN_DeactivateNotification(&hcan2, CANLine2Interrupts) != HAL_OK)
-			Error_Handler();
+			Error_Handler();		
 	}
 	else
 		Throw(FUNCTION_BAD_CALL);
+	
+	FlushCANBufferIntoFile(lineNumber);
 }
 
 void SetCANLineParameter(int lineNumber, CANSpyParam params)
