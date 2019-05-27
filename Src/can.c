@@ -22,6 +22,15 @@
 
 /* USER CODE BEGIN 0 */
 #include "main.h"
+#include "string.h"
+
+uint32_t CAN1BufferHead = 0;
+uint32_t CAN1BufferTail = 0;
+CANMsg CAN1SpyBuffer[CANSpyBufferLength];
+
+uint32_t CAN2BufferHead = 0;
+uint32_t CAN2BufferTail = 0;
+CANMsg CAN2SpyBuffer[CANSpyBufferLength];
 /* USER CODE END 0 */
 
 CAN_HandleTypeDef hcan1;
@@ -214,34 +223,118 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 /* USER CODE BEGIN 1 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
+	CAN_RxHeaderTypeDef   RxHeader;
+	uint8_t               RxData[8];
+	CANMsg *frame;
+	uint32_t *bufferTail;
+	uint32_t *bufferHead;
+	uint32_t actualSize = 0;
+	
 	if(hcan->Instance == CAN1)
-	{		
-		CAN_RxHeaderTypeDef   RxHeader;
-		uint8_t               RxData[8];
-		
-		osSignalSet(canLine1TaskHandle, CANMessageReceivedSignal);
+	{
+		bufferHead = &CAN1BufferHead;
+		bufferTail = &CAN1BufferTail;
+		frame = &CAN1SpyBuffer[CAN1BufferTail];
 		HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, RxData);
 	}
 	else if(hcan->Instance == CAN2)
-	{		
-		CAN_RxHeaderTypeDef   RxHeader;
-		uint8_t               RxData[8];
-		
-		osSignalSet(canLine1TaskHandle, CANMessageReceivedSignal);
+	{
+		bufferHead = &CAN2BufferHead;
+		bufferTail = &CAN2BufferTail;
+		frame = &CAN2SpyBuffer[CAN2BufferTail];
 		HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData);
+	}
+	
+	// In base all'indice dell'ultimo messaggio aggancio al buffer della spia un messaggio
+	// 1 - Resetto la struttura, per evitare di riciclare informazioni dalla giro precedente
+	memset(frame, 0x00, sizeof(CANMsg));
+	
+	// 2 - TODO : impostare campo time
+
+	// 3 - Imposto l'ID del messaggio ricevuto
+	frame->id = RxHeader.StdId;
+	
+	// 4 - Copio i dati del buffer
+	frame->dataSize = RxHeader.DLC;
+	memcpy(frame->data, RxData, RxHeader.DLC);
+	
+	// 5 - Non si tratta di un errore
+	frame->isError = 0x00;
+	frame->errorCode = 0x00000000;
+	
+	// 6 - Incremento il puntatore alla coda
+	(*bufferTail)++;
+	if( (*bufferTail) >= CANSpyBufferLength )
+		(*bufferTail) -= CANSpyBufferLength;
+	
+	// Calcolo il numero di messaggi attuali per lanciare il salvataggio
+	if( (*bufferTail) >= (*bufferHead) )
+		actualSize = (*bufferTail) - (*bufferHead);	
+	else
+		actualSize = CANSpyBufferLength + (*bufferTail) - (*bufferHead);
+	
+	if(actualSize >= CANSpyBufferLengthToFlush)
+	{
+		if(hcan->Instance == CAN1)
+			osSignalSet(canLine1TaskHandle, CANBufferHasToBeFlushed);
+		else if(hcan->Instance == CAN2)
+			osSignalSet(canLine2TaskHandle, CANBufferHasToBeFlushed);
 	}
 }
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 {
 	uint8_t errorCode;
+	CANMsg *frame;
+	uint32_t *bufferTail;
+	uint32_t *bufferHead;
+	uint32_t actualSize = 0;
+
 	errorCode = HAL_CAN_GetError(hcan);
-	HAL_CAN_ResetError(hcan);
+	HAL_CAN_ResetError(hcan);	
 	
 	if(hcan->Instance == CAN1)
-		osSignalSet(canLine1TaskHandle, CANMessageReceivedSignal);
+	{
+		bufferHead = &CAN1BufferHead;
+		bufferTail = &CAN1BufferTail;
+		frame = &CAN1SpyBuffer[CAN1BufferTail];
+	}
 	else if(hcan->Instance == CAN2)
-		osSignalSet(canLine1TaskHandle, CANMessageReceivedSignal);
+	{
+		bufferHead = &CAN2BufferHead;
+		bufferTail = &CAN2BufferTail;		
+		frame = &CAN2SpyBuffer[CAN2BufferTail];
+	}
+	
+	// In base all'indice dell'ultimo messaggio aggancio al buffer della spia un messaggio
+	// 1 - Resetto la struttura, per evitare di riciclare informazioni dalla giro precedente
+	memset(frame, 0x00, sizeof(CANMsg));
+	
+	// 2 - TODO : impostare campo time
+	
+	// 3 - Si tratta di un errore
+	frame->isError = 0x01;
+	frame->errorCode = errorCode;
+	
+	// 4 - Incremento il puntatore alla coda
+	(*bufferTail)++;
+	if( (*bufferTail) >= CANSpyBufferLength )
+		(*bufferTail) -= CANSpyBufferLength;
+	
+	
+	// Calcolo il numero di messaggi attuali per lanciare il salvataggio
+	if( (*bufferTail) >= (*bufferHead) )
+		actualSize = (*bufferTail) - (*bufferHead);	
+	else
+		actualSize = CANSpyBufferLength + (*bufferTail) - (*bufferHead);
+	
+	if(actualSize >= CANSpyBufferLengthToFlush)
+	{
+		if(hcan->Instance == CAN1)
+			osSignalSet(canLine1TaskHandle, CANBufferHasToBeFlushed);
+		else if(hcan->Instance == CAN2)
+			osSignalSet(canLine2TaskHandle, CANBufferHasToBeFlushed);
+	}
 }
 /* USER CODE END 1 */
 

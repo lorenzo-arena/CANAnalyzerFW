@@ -26,17 +26,17 @@ void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommand
 void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
 void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData);
 
-osThreadId can1TaskHandle = NULL;
-osThreadId can2TaskHandle = NULL;
-
-FATFS myFatFS;
-FIL myFile;
-
+// Imposto queste variabili come globali,
+// per ridurre l'utilizzo dello stack
+FRESULT dispatcherFr;
+FIL dispatcherFp;
+DIR dispatcherDirInfo;
+FILINFO dispatcherFileInfo;
 /**
   * @brief  Function implementing the StartDispatcherTask thread.
   * @param  argument: Not used 
   * @retval None
-  */
+  */	
 void StartDispatcherTask(void const * argument)
 {	
 	CEXCEPTION_T ex;
@@ -44,15 +44,6 @@ void StartDispatcherTask(void const * argument)
 	mailCommandResponse *commandResponse = NULL;
 	osEvent event;
 	
-	/* init code for FATFS */
-  MX_FATFS_Init();
-
-  /* USER CODE BEGIN StartDefaultTask */
-	if(f_mount(&myFatFS, "", 1) != FR_OK)
-	{
-		Error_Handler();
-	}
-
 	for(;;)
 	{		
 		event = osMailGet(commandMailHandle, osWaitForever);
@@ -143,35 +134,32 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 		      command == CMD_GETCAN2FILESNUM ||
 					command == CMD_GETKFILESNUM)
 	{
-		FILINFO fileInfo;
-		DIR dirInfo;
-		FRESULT searchResult;
 		int filesNum = 0;
 		
 		if(command == CMD_GETCAN1FILESNUM)
 		{
 			PrintLnDebugMessage(">> Command: Get CAN1 files number");
-			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN1", "CAN1*.*");
+			dispatcherFr = f_findfirst(&dispatcherDirInfo, &dispatcherFileInfo, "\\CAN1", "CAN1*.*");
 		}
 		else if(command == CMD_GETCAN2FILESNUM)
 		{
 			PrintLnDebugMessage(">> Command: Get CAN2 files number");
-			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN2", "CAN2*.*");
+			dispatcherFr = f_findfirst(&dispatcherDirInfo, &dispatcherFileInfo, "\\CAN2", "CAN2*.*");
 		}
 		else if(command == CMD_GETKFILESNUM)
 		{
 			PrintLnDebugMessage(">> Command: Get K files number");
-			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\K", "K*.*");
+			dispatcherFr = f_findfirst(&dispatcherDirInfo, &dispatcherFileInfo, "\\K", "K*.*");
 		}
 		
 		// Scorro tutti i file per calcolare quanti sono
-		while(searchResult == FR_OK && fileInfo.fname[0])
+		while(dispatcherFr == FR_OK && dispatcherFileInfo.fname[0])
 		{
 			filesNum++;
-			searchResult = f_findnext(&dirInfo, &fileInfo);
+			dispatcherFr = f_findnext(&dispatcherDirInfo, &dispatcherFileInfo);
 		}
 		
-		f_closedir(&dirInfo);
+		f_closedir(&dispatcherDirInfo);
 
 		responseData->response = filesNum;
 	}
@@ -179,43 +167,40 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 		      command == CMD_GETCAN2FILENAME ||
 					command == CMD_GETKFILENAME)
 	{
-		FILINFO fileInfo;
-		DIR dirInfo;
-		FRESULT searchResult;
 		int fileIndex = 0;
 		int selectedFileIndex = GetUInt32FromBuffer(commandData->dataBuff, 0);
 		
 		if(command == CMD_GETCAN1FILENAME)
 		{
 			PrintLnDebugMessage(">> Command: Get CAN1 file name");
-			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN1", "CAN1*.*");
+			dispatcherFr = f_findfirst(&dispatcherDirInfo, &dispatcherFileInfo, "\\CAN1", "CAN1*.*");
 		}
 		else if(command == CMD_GETCAN2FILENAME)
 		{
 			PrintLnDebugMessage(">> Command: Get CAN2 file name");
-			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN2", "CAN2*.*");
+			dispatcherFr = f_findfirst(&dispatcherDirInfo, &dispatcherFileInfo, "\\CAN2", "CAN2*.*");
 		}
 		else if(command == CMD_GETKFILENAME)
 		{
 			PrintLnDebugMessage(">> Command: Get K file name");
-			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\K", "K*.*");
+			dispatcherFr = f_findfirst(&dispatcherDirInfo, &dispatcherFileInfo, "\\K", "K*.*");
 		}
 		
 		// Scorro tutti i file fino a trovare quello con l'indice corretto
-		while(fileIndex != selectedFileIndex && searchResult == FR_OK && fileInfo.fname[0])
+		while(fileIndex != selectedFileIndex && dispatcherFr == FR_OK && dispatcherFileInfo.fname[0])
 		{
 			fileIndex++;
-			searchResult = f_findnext(&dirInfo, &fileInfo);
+			dispatcherFr = f_findnext(&dispatcherDirInfo, &dispatcherFileInfo);
 		}
 		
-		f_closedir(&dirInfo);
+		f_closedir(&dispatcherDirInfo);
 		
-		if(fileIndex == selectedFileIndex && strcmp(fileInfo.fname, "") != 0)
+		if(fileIndex == selectedFileIndex && strcmp(dispatcherFileInfo.fname, "") != 0)
 		{
 			responseData->response = 0x00000000;
-			responseData->responseBuff = malloc(strlen(fileInfo.fname));
-			responseData->responseBuffLength = strlen(fileInfo.fname);
-			memcpy(responseData->responseBuff, fileInfo.fname, strlen(fileInfo.fname));
+			responseData->responseBuff = malloc(strlen(dispatcherFileInfo.fname));
+			responseData->responseBuffLength = strlen(dispatcherFileInfo.fname);
+			memcpy(responseData->responseBuff, dispatcherFileInfo.fname, strlen(dispatcherFileInfo.fname));
 		}
 		else
 			Throw(PARAMETERS_NOT_CORRECT);
@@ -224,39 +209,36 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 		      command == CMD_GETCAN2FILESIZE ||
 					command == CMD_GETKFILESIZE)
 	{
-		FILINFO fileInfo;
-		DIR dirInfo;
-		FRESULT searchResult;
 		int fileIndex = 0;
 		int selectedFileIndex = GetUInt32FromBuffer(commandData->dataBuff, 0);
 		
 		if(command == CMD_GETCAN1FILESIZE)
 		{
 			PrintLnDebugMessage(">> Command: Get CAN1 file size");
-			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN1", "CAN1*.*");
+			dispatcherFr = f_findfirst(&dispatcherDirInfo, &dispatcherFileInfo, "\\CAN1", "CAN1*.*");
 		}
 		else if(command == CMD_GETCAN2FILESIZE)
 		{
 			PrintLnDebugMessage(">> Command: Get CAN2 file size");
-			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\CAN2", "CAN2*.*");
+			dispatcherFr = f_findfirst(&dispatcherDirInfo, &dispatcherFileInfo, "\\CAN2", "CAN2*.*");
 		}
 		else if(command == CMD_GETKFILESIZE)
 		{
 			PrintLnDebugMessage(">> Command: Get K file size");
-			searchResult = f_findfirst(&dirInfo, &fileInfo, "\\K", "K*.*");
+			dispatcherFr = f_findfirst(&dispatcherDirInfo, &dispatcherFileInfo, "\\K", "K*.*");
 		}
 		
 		// Scorro tutti i file fino a trovare quello con l'indice corretto
-		while(fileIndex != selectedFileIndex && searchResult == FR_OK && fileInfo.fname[0])
+		while(fileIndex != selectedFileIndex && dispatcherFr == FR_OK && dispatcherFileInfo.fname[0])
 		{
 			fileIndex++;
-			searchResult = f_findnext(&dirInfo, &fileInfo);
+			dispatcherFr = f_findnext(&dispatcherDirInfo, &dispatcherFileInfo);
 		}
 		
-		f_closedir(&dirInfo);
+		f_closedir(&dispatcherDirInfo);
 		
-		if(fileIndex == selectedFileIndex && strcmp(fileInfo.fname, "") != 0)
-			responseData->response = (uint32_t)fileInfo.fsize;
+		if(fileIndex == selectedFileIndex && strcmp(dispatcherFileInfo.fname, "") != 0)
+			responseData->response = (uint32_t)dispatcherFileInfo.fsize;
 		else
 			Throw(PARAMETERS_NOT_CORRECT);
 	}
@@ -264,7 +246,6 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 					command == CMD_GETCAN2FILE ||
 					command == CMD_GETKFILE)
 	{
-		FIL file;
 		char *filePath;
 
 		// Creo la path per il file
@@ -291,15 +272,15 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 		}
 		
 		// Apro il file
-		if(f_open(&file, filePath, FA_READ) == FR_OK)
+		if(f_open(&dispatcherFp, filePath, FA_READ) == FR_OK)
 		{
 			uint32_t sizeRead = 0;
-			FSIZE_t fileSize = f_size(&file);
+			FSIZE_t fileSize = f_size(&dispatcherFp);
 			responseData->response = 0x00000000;
 			responseData->responseBuff = malloc(fileSize);
 			responseData->responseBuffLength = fileSize;
 			
-			f_read(&file, responseData->responseBuff, fileSize, &sizeRead);
+			f_read(&dispatcherFp, responseData->responseBuff, fileSize, &sizeRead);
 			free(filePath);
 		}
 		else
@@ -314,17 +295,17 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 
 void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData)
 {
-	if(command == CMD_STARTCANLINE)
+	if(command == CMD_STARTLINE)
 	{
 		PrintLnDebugMessage(">> Command: Start CAN1 Line");
 		StartCANLine(1);
 	}
-	else if(command == CMD_STOPCANLINE)
+	else if(command == CMD_STOPLINE)
 	{	
 		PrintLnDebugMessage(">> Command: Stop CAN1 Line");		
 		StopCANLine(1);
 	}
-	else if(command == CMD_SETCANPARAM)
+	else if(command == CMD_SETPARAM)
 	{
 		CANSpyParam params;
 		params.bitTiming = GetUInt32FromBuffer(commandData->dataBuff, 0);
@@ -337,23 +318,33 @@ void DispatchCAN1Command(uint16_t command, mailCommand *commandData, mailCommand
 		PrintLnDebugMessage(">> Command: Set CAN1 parameters");
 		SetCANLineParameter(1, params);
 	}
+	else if(command == CMD_GETBUFFER)
+	{
+		PrintLnDebugMessage(">> Command: Get CAN1 buffer");
+		
+		responseData->responseBuff = malloc(10 * sizeof(CANMsg));
+		responseData->responseBuffLength = 10 * sizeof(CANMsg);
+		memset(responseData->responseBuff, 0x00, 10 * sizeof(CANMsg));
+		
+		GetCANSpyBuffer(1, (CANMsg *)responseData->responseBuff, 10); 
+	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);
 }
 
 void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommandResponse *responseData)
 {
-	if(command == CMD_STARTCANLINE)
+	if(command == CMD_STARTLINE)
 	{
 		PrintLnDebugMessage(">> Command: Start CAN2 Line");
 		StartCANLine(2);
 	}
-	else if(command == CMD_STOPCANLINE)
+	else if(command == CMD_STOPLINE)
 	{
 		PrintLnDebugMessage(">> Command: Stop CAN1 Line");
 		StopCANLine(2);
 	}
-	else if(command == CMD_SETCANPARAM)
+	else if(command == CMD_SETPARAM)
 	{
 		CANSpyParam params;
 		params.bitTiming = GetUInt32FromBuffer(commandData->dataBuff, 0);
@@ -365,6 +356,16 @@ void DispatchCAN2Command(uint16_t command, mailCommand *commandData, mailCommand
 
 		PrintLnDebugMessage(">> Command: Set CAN2 parameters");
 		SetCANLineParameter(2, params);
+	}
+	else if(command == CMD_GETBUFFER)
+	{
+		PrintLnDebugMessage(">> Command: Get CAN2 buffer");
+		
+		responseData->responseBuff = malloc(10 * sizeof(CANMsg));
+		responseData->responseBuffLength = 10 * sizeof(CANMsg);
+		memset(responseData->responseBuff, 0x00, 10 * sizeof(CANMsg));
+		
+		GetCANSpyBuffer(2, (CANMsg *)responseData->responseBuff, 10);
 	}
 	else
 		Throw(COMMAND_NOT_VALID_ERROR);

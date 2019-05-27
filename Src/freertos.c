@@ -53,6 +53,7 @@
 osThreadId bleTaskHandle;
 osThreadId dispatcherTaskHandle;
 osThreadId canLine1TaskHandle;
+osThreadId canLine2TaskHandle;
 
 osMailQDef(commandMailHandle, 1, mailCommand);
 osMailQId commandMailHandle;
@@ -114,7 +115,7 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityAboveNormal, 0, 1024);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -124,8 +125,11 @@ void MX_FREERTOS_Init(void) {
 	osThreadDef(bleTask, StartBLETask, osPriorityNormal, 0, 2048);
 	bleTaskHandle = osThreadCreate(osThread(bleTask), NULL);
 
-	osThreadDef(canLine1Task, StartCANSpyTask, osPriorityNormal, 0, 128);
+	osThreadDef(canLine1Task, StartCANSpyTask, osPriorityNormal, 0, 1024);
 	canLine1TaskHandle = osThreadCreate(osThread(canLine1Task), (void *)1);
+	
+	osThreadDef(canLine2Task, StartCANSpyTask, osPriorityNormal, 0, 1024);
+	canLine2TaskHandle = osThreadCreate(osThread(canLine2Task), (void *)2);
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -136,7 +140,7 @@ void MX_FREERTOS_Init(void) {
   * @param  argument: Not used 
   * @retval None
   */
-
+FATFS SDFatFSHandle;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -144,10 +148,20 @@ void StartDefaultTask(void const * argument)
   MX_FATFS_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
+	if(f_mount(&SDFatFSHandle, "", 1) != FR_OK)
+	{
+		Error_Handler();
+	}
+
+	// Questo thread viene inizializzato con una priorita' alta
+	// per fargli eseguire l'inizializzazione del FatFS senza
+	// context switch	
+	osThreadSetPriority(StartDefaultTask, osPriorityBelowNormal);
+	
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    osDelay(100);
   }
   /* USER CODE END StartDefaultTask */
 }
