@@ -12,6 +12,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal.h"
+#include "stdbool.h"
 
 typedef struct
 {
@@ -27,6 +28,7 @@ typedef struct
 	uint32_t response;
 	uint8_t *responseBuff;
 	uint32_t responseBuffLength;
+	bool isChunk;
 } mailCommandResponse;
 
 #endif
