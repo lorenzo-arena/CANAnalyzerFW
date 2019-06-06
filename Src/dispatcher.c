@@ -58,6 +58,7 @@ void StartDispatcherTask(void const * argument)
 			commandResponse->response = 0;
 			commandResponse->responseBuff = NULL;
 			commandResponse->responseBuffLength = 0;
+			commandResponse->isChunk = false;
 			
 			switch(commandData->group)
 			{
@@ -272,15 +273,53 @@ void DispatchInfoCommand(uint16_t command, mailCommand *commandData, mailCommand
 		}
 		
 		// Apro il file
-		if(f_open(&dispatcherFp, filePath, FA_READ) == FR_OK)
+		dispatcherFr = f_open(&dispatcherFp, filePath, FA_READ);
+		if(dispatcherFr == FR_OK)
 		{
-			uint32_t sizeRead = 0;
-			FSIZE_t fileSize = f_size(&dispatcherFp);
-			responseData->response = 0x00000000;
-			responseData->responseBuff = malloc(fileSize);
-			responseData->responseBuffLength = fileSize;
+			osEvent event;
+			uint32_t readSize = 0;
+			mailCommandResponse *chunkResponse = NULL;
 			
-			f_read(&dispatcherFp, responseData->responseBuff, fileSize, &sizeRead);
+			chunkResponse = (mailCommandResponse *)osMailAlloc(commandResponseMailHandle, osWaitForever);
+			chunkResponse->errorCode = NO_ERROR;
+			chunkResponse->response = 0;
+			chunkResponse->responseBuff = NULL;
+			chunkResponse->responseBuffLength = 0;
+			chunkResponse->isChunk = true;
+			
+			chunkResponse->response = f_size(&dispatcherFp);
+			
+			osMailPut(commandResponseMailHandle, chunkResponse);
+			osMailFree(commandMailHandle, commandData);
+
+			event = osMailGet(commandMailHandle, osWaitForever);
+			
+			do
+			{
+				const uint32_t chunkSize = 500; // Un multiplo di 20!
+				
+				chunkResponse = (mailCommandResponse *)osMailAlloc(commandResponseMailHandle, osWaitForever);
+				chunkResponse->errorCode = NO_ERROR;
+				chunkResponse->response = 0;
+				chunkResponse->responseBuff = malloc(chunkSize);
+				chunkResponse->isChunk = true;
+				
+				// Leggo una parte del file
+				dispatcherFr = f_read(&dispatcherFp, chunkResponse->responseBuff, chunkSize, &readSize);
+				chunkResponse->responseBuffLength = readSize;
+				
+				if(readSize != 0)
+				{
+					// Invio questa parte del file e aspetto l'ok per 
+					// la parte successiva
+					osMailPut(commandResponseMailHandle, chunkResponse);
+					osMailFree(commandMailHandle, commandData);					
+					
+					event = osMailGet(commandMailHandle, osWaitForever);
+				}
+			}
+			while(dispatcherFr == FR_OK && readSize != 0);
+
 			free(filePath);
 		}
 		else
